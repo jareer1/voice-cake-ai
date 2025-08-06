@@ -1,0 +1,21 @@
+{
+  "name": "Voice Cake",
+  "short_name": "Voice Cake",
+  "description": "Voice AI Made Simple - Create, manage, and deploy AI voice agents",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#14b8a6",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/apple-touch-icon.svg",
+      "sizes": "180x180",
+      "type": "image/svg+xml"
+    }
+  ]
+}

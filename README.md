@@ -1,24 +1,25 @@
-# Welcome to your Lovable project
+# Voice Cake - Voice AI Made Simple
 
 ## Project info
 
-**URL**: https://lovable.dev/projects/d2e3f54b-c970-4fbc-8a5b-1e2ac6545ad6
+**Voice Cake** is a powerful platform for creating, managing, and deploying AI voice agents across multiple channels including WhatsApp, voice calls, and web platforms.
 
-## How can I edit this code?
+## Features
 
-There are several ways of editing your application.
+- **AI Voice Agents**: Create intelligent voice assistants that understand and respond naturally
+- **Multi-Channel Support**: Deploy across WhatsApp, voice calls, and web platforms seamlessly
+- **Voice Cloning**: Clone your voice or choose from premium voice options
+- **Enterprise Ready**: Secure, scalable, and compliant with industry standards
+- **Real-time Analytics**: Monitor and analyze your voice agent performance
+- **Sub-250ms Latency**: Ultra-fast response times for natural conversations
 
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/d2e3f54b-c970-4fbc-8a5b-1e2ac6545ad6) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
+## Development
 
 **Use your preferred IDE**
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+Clone this repo and work locally with your preferred development environment.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+Requirements: Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
 Follow these steps:
 
@@ -27,7 +28,7 @@ Follow these steps:
 git clone <YOUR_GIT_URL>
 
 # Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+cd voice-cake
 
 # Step 3: Install the necessary dependencies.
 npm i
@@ -36,38 +37,57 @@ npm i
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Deployment
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+This project is configured for deployment on Vercel with subdomain routing:
 
-**Use GitHub Codespaces**
+- Main domain: Landing page and marketing content
+- App subdomain: Dashboard and application features
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Environment Variables
 
-## What technologies are used for this project?
+Create a `.env` file based on `.env.example`:
 
-This project is built with:
+```bash
+VITE_APP_DOMAIN=yourdomain.com
+VITE_ENV=production
+VITE_LOCAL_DEV=false
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Deploy to Vercel
 
-## How can I deploy this project?
+1. Connect your repository to Vercel
+2. Configure environment variables
+3. Deploy
 
-Simply open [Lovable](https://lovable.dev/projects/d2e3f54b-c970-4fbc-8a5b-1e2ac6545ad6) and click on Share -> Publish.
+### Custom Domain Setup
 
-## Can I connect a custom domain to my Lovable project?
+To set up custom domain with subdomain routing:
 
-Yes, you can!
+1. Add your domain in Vercel dashboard
+2. Configure DNS records:
+   - A record: @ → Vercel IP
+   - CNAME record: app → cname.vercel-dns.com
+   - CNAME record: www → cname.vercel-dns.com
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+3. Update `VITE_APP_DOMAIN` environment variable
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## Project Structure
+
+```
+src/
+├── components/          # Reusable UI components
+├── pages/              # Page components
+├── hooks/              # Custom React hooks
+├── lib/                # Utility functions
+└── types/              # TypeScript type definitions
+```
+
+## Technology Stack
+
+- **Frontend**: React + TypeScript + Vite
+- **Styling**: Tailwind CSS + shadcn/ui
+- **Fonts**: Roboto (default), Noto Serif (headings)
+- **Icons**: Lucide React
+- **Routing**: React Router
+- **Build Tool**: Vite

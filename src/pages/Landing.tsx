@@ -154,7 +154,7 @@ export default function Landing() {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background font-roboto">
       {/* Navigation */}
       <AppNav />
       {/* Hero Section */}
@@ -170,7 +170,7 @@ export default function Landing() {
                 🚀 Now with Voice Cloning Technology
               </Badge>
               
-              <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold text-black leading-tight">
+              <h1 className="text-4xl sm:text-5xl lg:text-7xl font-noto-serif-normal text-black leading-tight">
                 Experience <span className="ultra-real-animated">ultra-real</span> voice conversations with unmatched speed, quality, and affordability.
               </h1>
 
@@ -225,7 +225,7 @@ export default function Landing() {
               <Badge variant="outline" className="mx-auto">
                 🎯 Test Drive
               </Badge>
-              <h2 className="text-3xl sm:text-4xl font-bold">
+              <h2 className="text-3xl sm:text-4xl font-noto-serif-bold">
                 Experience AI Voice Technology
               </h2>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
@@ -241,7 +241,7 @@ export default function Landing() {
                 </div>
                 
                 <div className="space-y-2">
-                  <h3 className="text-2xl font-semibold">Customer Support AI</h3>
+                  <h3 className="text-2xl font-noto-serif-bold">Customer Support AI</h3>
                   <p className="text-muted-foreground">
                     Ask about products, get help with orders, or test any customer service scenario
                   </p>
@@ -281,10 +281,10 @@ export default function Landing() {
       <section id="features" className="py-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center space-y-4 mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold">
+            <h2 className="text-3xl sm:text-4xl font-noto-serif-bold">
               Everything You Need to Build Voice AI
             </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
               Powerful features that make creating and managing AI voice agents simple and effective
             </p>
           </div>
@@ -313,7 +313,7 @@ export default function Landing() {
       <section id="testimonials" className="py-20 bg-secondary/20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center space-y-4 mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold">
+            <h2 className="text-3xl sm:text-4xl font-noto-serif-bold">
               Loved by Teams Worldwide
             </h2>
             <p className="text-xl text-muted-foreground">
@@ -403,13 +403,167 @@ export default function Landing() {
               </Card>
             ))}
           </div>
+
+          {/* Pricing Comparison Table */}
+          <div className="mt-20">
+            <div className="text-center space-y-4 mb-12">
+              <h3 className="text-2xl sm:text-3xl font-noto-serif-bold text-gray-700">
+                Pricing Comparison
+              </h3>
+            </div>
+
+            <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="px-6 py-4 text-left">
+                        <span className="text-lg font-semibold text-gray-600">FEATURES</span>
+                      </th>
+                      <th className="px-6 py-4 text-center bg-teal-400">
+                        <span className="text-lg font-bold text-white">VOICE CAKE</span>
+                      </th>
+                      <th className="px-6 py-4 text-center bg-gray-100">
+                        <span className="text-lg font-semibold text-gray-600">VAPI / ELEVENLABS</span>
+                      </th>
+                      <th className="px-6 py-4 text-center bg-gray-100">
+                        <span className="text-lg font-semibold text-gray-600">AMAZON / GOOGLE / AZURE</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    <tr className="hover:bg-gray-50">
+                      <td className="px-6 py-4 text-gray-700 font-medium">Unified Speech-to-Speech</td>
+                      <td className="px-6 py-4 text-center bg-teal-50">
+                        <Check className="w-6 h-6 text-teal-500 mx-auto" />
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="text-red-500 text-xl">✕</span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="text-red-500 text-xl">✕</span>
+                      </td>
+                    </tr>
+                    <tr className="hover:bg-gray-50">
+                      <td className="px-6 py-4 text-gray-700 font-medium">Sub-250ms Latency</td>
+                      <td className="px-6 py-4 text-center bg-teal-50">
+                        <Check className="w-6 h-6 text-teal-500 mx-auto" />
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="text-red-500 text-xl">✕</span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="text-red-500 text-xl">✕</span>
+                      </td>
+                    </tr>
+                    <tr className="hover:bg-gray-50">
+                      <td className="px-6 py-4 text-gray-700 font-medium">All-in-One Pricing</td>
+                      <td className="px-6 py-4 text-center bg-teal-50">
+                        <Check className="w-6 h-6 text-teal-500 mx-auto" />
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="text-red-500 text-xl">✕</span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="text-red-500 text-xl">✕</span>
+                      </td>
+                    </tr>
+                    <tr className="hover:bg-gray-50">
+                      <td className="px-6 py-4 text-gray-700 font-medium">50+ Expressive Voices</td>
+                      <td className="px-6 py-4 text-center bg-teal-50">
+                        <Check className="w-6 h-6 text-teal-500 mx-auto" />
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <Check className="w-6 h-6 text-teal-500 mx-auto" />
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="text-red-500 text-xl">✕</span>
+                      </td>
+                    </tr>
+                    <tr className="hover:bg-gray-50">
+                      <td className="px-6 py-4 text-gray-700 font-medium">Real-time Analytics</td>
+                      <td className="px-6 py-4 text-center bg-teal-50">
+                        <Check className="w-6 h-6 text-teal-500 mx-auto" />
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <Check className="w-6 h-6 text-teal-500 mx-auto" />
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="text-red-500 text-xl">✕</span>
+                      </td>
+                    </tr>
+                    <tr className="hover:bg-gray-50">
+                      <td className="px-6 py-4 text-gray-700 font-medium">Emotion & Reasoning</td>
+                      <td className="px-6 py-4 text-center bg-teal-50">
+                        <Check className="w-6 h-6 text-teal-500 mx-auto" />
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="text-red-500 text-xl">✕</span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="text-red-500 text-xl">✕</span>
+                      </td>
+                    </tr>
+                    <tr className="hover:bg-gray-50">
+                      <td className="px-6 py-4 text-gray-700 font-medium">WebRTC Streaming</td>
+                      <td className="px-6 py-4 text-center bg-teal-50">
+                        <Check className="w-6 h-6 text-teal-500 mx-auto" />
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="text-red-500 text-xl">✕</span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="text-red-500 text-xl">✕</span>
+                      </td>
+                    </tr>
+                    <tr className="hover:bg-gray-50">
+                      <td className="px-6 py-4 text-gray-700 font-medium">No Hidden Fees</td>
+                      <td className="px-6 py-4 text-center bg-teal-50">
+                        <Check className="w-6 h-6 text-teal-500 mx-auto" />
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="text-red-500 text-xl">✕</span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="text-red-500 text-xl">✕</span>
+                      </td>
+                    </tr>
+                    <tr className="hover:bg-gray-50">
+                      <td className="px-6 py-4 text-gray-700 font-medium">5 Free Minutes Monthly</td>
+                      <td className="px-6 py-4 text-center bg-teal-50">
+                        <Check className="w-6 h-6 text-teal-500 mx-auto" />
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="text-red-500 text-xl">✕</span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="text-red-500 text-xl">✕</span>
+                      </td>
+                    </tr>
+                    <tr className="hover:bg-gray-50">
+                      <td className="px-6 py-4 text-gray-700 font-medium">Volume Discounts</td>
+                      <td className="px-6 py-4 text-center bg-teal-50">
+                        <Check className="w-6 h-6 text-teal-500 mx-auto" />
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <Check className="w-6 h-6 text-teal-500 mx-auto" />
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className="text-red-500 text-xl">✕</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* CTA Section */}
       <section className="py-20 bg-theme-gradient">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-8">
-          <h2 className="text-3xl sm:text-4xl font-bold text-white">
+          <h2 className="text-3xl sm:text-4xl font-noto-serif-bold text-white">
             Ready to Transform Your Customer Experience?
           </h2>
           <p className="text-xl text-white/80 max-w-2xl mx-auto">

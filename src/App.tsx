@@ -22,7 +22,19 @@ const queryClient = new QueryClient();
 // Helper function to detect if we're on the app subdomain
 const isAppSubdomain = () => {
   const hostname = window.location.hostname;
-  return hostname.startsWith('app.') || hostname === 'localhost' || hostname === '127.0.0.1';
+  
+  // For local development, check for specific paths or query params
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    // Check if we're explicitly on app routes
+    const path = window.location.pathname;
+    return path.startsWith('/dashboard') || 
+           path.startsWith('/agents') || 
+           path.startsWith('/voice-clone') || 
+           path.startsWith('/settings') ||
+           path.startsWith('/auth');
+  }
+  
+  return hostname.startsWith('app.');
 };
 
 // Component to handle subdomain redirects

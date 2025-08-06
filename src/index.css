@@ -150,7 +150,8 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Roboto', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
   }
 
   /* Custom utility classes */
@@ -319,5 +320,80 @@
   /* Hover effects */
   .hover-theme-glow:hover {
     box-shadow: 0 0 40px hsl(var(--theme-gradient-start) / 0.3);
+  }
+
+  /* Noto Serif Font Utilities */
+  .font-noto-serif {
+    font-family: 'Noto Serif', serif;
+  }
+
+  .text-noto-serif {
+    font-family: 'Noto Serif', serif;
+  }
+
+  /* Noto Serif with different weights */
+  .font-noto-serif-light {
+    font-family: 'Noto Serif', serif;
+    font-weight: 300;
+  }
+
+  .font-noto-serif-normal {
+    font-family: 'Noto Serif', serif;
+    font-weight: 400;
+  }
+
+  .font-noto-serif-medium {
+    font-family: 'Noto Serif', serif;
+    font-weight: 500;
+  }
+
+  .font-noto-serif-semibold {
+    font-family: 'Noto Serif', serif;
+    font-weight: 600;
+  }
+
+  .font-noto-serif-bold {
+    font-family: 'Noto Serif', serif;
+    font-weight: 700;
+  }
+
+  /* Roboto Font Utilities */
+  .font-roboto {
+    font-family: 'Roboto', sans-serif;
+  }
+
+  .text-roboto {
+    font-family: 'Roboto', sans-serif;
+  }
+
+  /* Roboto with different weights */
+  .font-roboto-thin {
+    font-family: 'Roboto', sans-serif;
+    font-weight: 100;
+  }
+
+  .font-roboto-light {
+    font-family: 'Roboto', sans-serif;
+    font-weight: 300;
+  }
+
+  .font-roboto-normal {
+    font-family: 'Roboto', sans-serif;
+    font-weight: 400;
+  }
+
+  .font-roboto-medium {
+    font-family: 'Roboto', sans-serif;
+    font-weight: 500;
+  }
+
+  .font-roboto-bold {
+    font-family: 'Roboto', sans-serif;
+    font-weight: 700;
+  }
+
+  .font-roboto-black {
+    font-family: 'Roboto', sans-serif;
+    font-weight: 900;
   }
 }
