@@ -29,15 +29,21 @@ const isAppSubdomain = () => {
 const SubdomainRedirect = ({ to, isApp }: { to: string; isApp: boolean }) => {
   const currentHost = window.location.hostname;
   
+  // Remove both 'app.' and 'www.' prefixes to get the main domain
+  let mainDomain = currentHost.replace(/^(app\.|www\.)/, '');
+  
+  // If the domain still has www after removing app, remove it
+  if (mainDomain.startsWith('www.')) {
+    mainDomain = mainDomain.replace(/^www\./, '');
+  }
+  
+  const protocol = window.location.protocol;
+  
   if (isApp) {
     // Redirect to app subdomain
-    const mainDomain = currentHost.replace(/^app\./, '');
-    const protocol = window.location.protocol;
     window.location.href = `${protocol}//app.${mainDomain}${to}`;
   } else {
-    // Redirect to main domain
-    const mainDomain = currentHost.replace(/^app\./, '');
-    const protocol = window.location.protocol;
+    // Redirect to main domain (without www)
     window.location.href = `${protocol}//${mainDomain}${to}`;
   }
   

@@ -30,7 +30,14 @@ const getAppUrl = (path: string = '') => {
   }
   
   // For production - redirect to app subdomain
-  const mainDomain = currentHost.replace(/^app\./, '');
+  // Remove both 'app.' and 'www.' prefixes to get the main domain
+  let mainDomain = currentHost.replace(/^(app\.|www\.)/, '');
+  
+  // If the domain still has www after removing app, remove it
+  if (mainDomain.startsWith('www.')) {
+    mainDomain = mainDomain.replace(/^www\./, '');
+  }
+  
   return `${protocol}//app.${mainDomain}${path}`;
 };
 
