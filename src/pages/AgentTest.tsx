@@ -196,7 +196,7 @@ export default function AgentTest() {
         <div className="flex items-center gap-4">
           <Avatar className="w-12 h-12 ring-2 ring-primary/20">
             <AvatarImage src={agent.avatar} />
-            <AvatarFallback className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white font-semibold">
+            <AvatarFallback className="bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 text-white font-semibold">
               {agent.name.slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
@@ -245,7 +245,7 @@ export default function AgentTest() {
                     <div
                       className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                         message.type === 'user'
-                          ? 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white'
+                          ? 'bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 text-white'
                           : message.type === 'agent'
                           ? 'bg-secondary text-secondary-foreground'
                           : 'bg-muted text-muted-foreground text-center text-sm'
@@ -265,7 +265,7 @@ export default function AgentTest() {
                       variant="outline"
                       size="lg"
                       onClick={handleConnect}
-                      className="gap-2 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white border-slate-700 hover:border-slate-600"
+                      className="gap-2 bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 text-white border-teal-700 hover:border-teal-600"
                     >
                       <Phone className="w-5 h-5" />
                       Connect to Agent
@@ -341,7 +341,7 @@ export default function AgentTest() {
                 <h4 className="text-sm font-medium text-muted-foreground mb-1">Status</h4>
                 <Badge 
                   variant={agent.status === 'active' ? 'outline' : agent.status === 'training' ? 'secondary' : 'outline'}
-                  className={agent.status === 'active' ? 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white border-slate-700' : ''}
+                  className={agent.status === 'active' ? 'bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 text-white border-teal-700' : ''}
                 >
                   {agent.status}
                 </Badge>

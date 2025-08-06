@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Bot } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export default function AppNav() {
@@ -13,21 +12,23 @@ export default function AppNav() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-lg flex items-center justify-center">
-              <Bot className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-bold text-xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent">Voice Cake</span>
+            <img 
+              src="https://voicecake.vercel.app/assets/img/logo/voice-cake-logo-gradient.svg" 
+              alt="Voice Cake Logo" 
+              className="w-8 h-8"
+            />
+            <span className="font-bold text-sm bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 bg-clip-text text-transparent">Voice Cake</span>
           </div>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-foreground hover:bg-gradient-to-br hover:from-slate-900 hover:via-slate-800 hover:to-slate-900 hover:bg-clip-text hover:text-transparent transition-all duration-300">
+            <a href="#features" className="text-foreground hover:bg-gradient-to-br hover:from-teal-600 hover:via-teal-700 hover:to-emerald-700 hover:bg-clip-text hover:text-transparent transition-all duration-300">
               Features
             </a>
-            <a href="#pricing" className="text-foreground hover:bg-gradient-to-br hover:from-slate-900 hover:via-slate-800 hover:to-slate-900 hover:bg-clip-text hover:text-transparent transition-all duration-300">
+            <a href="#pricing" className="text-foreground hover:bg-gradient-to-br hover:from-teal-600 hover:via-teal-700 hover:to-emerald-700 hover:bg-clip-text hover:text-transparent transition-all duration-300">
               Pricing
             </a>
-            <a href="#testimonials" className="text-foreground hover:bg-gradient-to-br hover:from-slate-900 hover:via-slate-800 hover:to-slate-900 hover:bg-clip-text hover:text-transparent transition-all duration-300">
+            <a href="#testimonials" className="text-foreground hover:bg-gradient-to-br hover:from-teal-600 hover:via-teal-700 hover:to-emerald-700 hover:bg-clip-text hover:text-transparent transition-all duration-300">
               Testimonials
             </a>
             <Button 
@@ -41,7 +42,7 @@ export default function AppNav() {
               variant="outline"
               size="sm"
               onClick={() => navigate("/auth/signin")}
-              className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white border-slate-700 hover:border-slate-600"
+              className="bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 text-white border-teal-700 hover:border-teal-600"
             >
               Sign In
             </Button>
@@ -64,13 +65,13 @@ export default function AppNav() {
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t border-border">
             <div className="flex flex-col gap-4">
-              <a href="#features" className="text-foreground hover:bg-gradient-to-br hover:from-slate-900 hover:via-slate-800 hover:to-slate-900 hover:bg-clip-text hover:text-transparent transition-all duration-300">
+              <a href="#features" className="text-foreground hover:bg-gradient-to-br hover:from-teal-600 hover:via-teal-700 hover:to-emerald-700 hover:bg-clip-text hover:text-transparent transition-all duration-300">
                 Features
               </a>
-              <a href="#pricing" className="text-foreground hover:bg-gradient-to-br hover:from-slate-900 hover:via-slate-800 hover:to-slate-900 hover:bg-clip-text hover:text-transparent transition-all duration-300">
+              <a href="#pricing" className="text-foreground hover:bg-gradient-to-br hover:from-teal-600 hover:via-teal-700 hover:to-emerald-700 hover:bg-clip-text hover:text-transparent transition-all duration-300">
                 Pricing
               </a>
-              <a href="#testimonials" className="text-foreground hover:bg-gradient-to-br hover:from-slate-900 hover:via-slate-800 hover:to-slate-900 hover:bg-clip-text hover:text-transparent transition-all duration-300">
+              <a href="#testimonials" className="text-foreground hover:bg-gradient-to-br hover:from-teal-600 hover:via-teal-700 hover:to-emerald-700 hover:bg-clip-text hover:text-transparent transition-all duration-300">
                 Testimonials
               </a>
               <Button 
@@ -84,7 +85,7 @@ export default function AppNav() {
               <Button 
                 variant="outline"
                 size="sm" 
-                className="w-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white border-slate-700 hover:border-slate-600"
+                className="w-full bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 text-white border-teal-700 hover:border-teal-600"
                 onClick={() => navigate("/auth/signin")}
               >
                 Sign In

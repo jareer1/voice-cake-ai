@@ -17,24 +17,24 @@
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 9%;
 
-    /* Primary - Deep purple for AI/tech aesthetic */
-    --primary: 259 94% 51%;
+    /* Primary - Teal/Green gradient colors */
+    --primary: 174 100% 29%;
     --primary-foreground: 0 0% 98%;
-    --primary-hover: 259 94% 45%;
-    --primary-glow: 259 94% 71%;
+    --primary-hover: 174 100% 25%;
+    --primary-glow: 174 100% 40%;
 
-    /* Secondary - Soft purple-gray */
-    --secondary: 240 5% 96%;
-    --secondary-foreground: 240 6% 10%;
+    /* Secondary - Soft teal-gray */
+    --secondary: 180 5% 96%;
+    --secondary-foreground: 180 6% 10%;
 
     /* Muted colors */
-    --muted: 240 5% 96%;
-    --muted-foreground: 240 4% 46%;
+    --muted: 180 5% 96%;
+    --muted-foreground: 180 4% 46%;
 
-    /* Accent - Electric blue for highlights */
-    --accent: 199 89% 48%;
+    /* Accent - Bright teal for highlights */
+    --accent: 180 100% 25%;
     --accent-foreground: 0 0% 98%;
-    --accent-glow: 199 89% 68%;
+    --accent-glow: 180 100% 35%;
 
     /* Status colors */
     --destructive: 0 84% 60%;
@@ -73,13 +73,13 @@
 
     /* Sidebar colors - Light theme */
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 240 10% 9%;
-    --sidebar-primary: 259 94% 51%;
+    --sidebar-foreground: 180 10% 9%;
+    --sidebar-primary: 174 100% 29%;
     --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 5% 96%;
-    --sidebar-accent-foreground: 240 10% 9%;
-    --sidebar-border: 240 6% 90%;
-    --sidebar-ring: 215 28% 17%;
+    --sidebar-accent: 180 5% 96%;
+    --sidebar-accent-foreground: 180 10% 9%;
+    --sidebar-border: 180 6% 90%;
+    --sidebar-ring: 174 28% 17%;
   }
 
   .dark {
@@ -93,10 +93,10 @@
     --popover: 240 10% 6%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 259 94% 51%;
+    --primary: 174 100% 35%;
     --primary-foreground: 0 0% 98%;
-    --primary-hover: 259 94% 55%;
-    --primary-glow: 259 94% 71%;
+    --primary-hover: 174 100% 30%;
+    --primary-glow: 174 100% 45%;
 
     --secondary: 240 4% 16%;
     --secondary-foreground: 0 0% 98%;
@@ -104,9 +104,9 @@
     --muted: 240 4% 16%;
     --muted-foreground: 240 5% 64%;
 
-    --accent: 199 89% 48%;
+    --accent: 180 100% 30%;
     --accent-foreground: 0 0% 98%;
-    --accent-glow: 199 89% 68%;
+    --accent-glow: 180 100% 40%;
 
     --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 98%;
@@ -128,12 +128,12 @@
     /* Sidebar colors - Dark theme */
     --sidebar-background: 240 10% 6%;
     --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 259 94% 51%;
+    --sidebar-primary: 174 100% 35%;
     --sidebar-primary-foreground: 0 0% 98%;
     --sidebar-accent: 240 4% 16%;
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 240 4% 16%;
-    --sidebar-ring: 215 28% 17%;
+    --sidebar-ring: 174 28% 17%;
   }
 }
 

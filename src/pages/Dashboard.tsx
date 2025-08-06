@@ -98,7 +98,7 @@ export default function Dashboard() {
         </div>
         <Button 
           size="lg" 
-          className="gap-2 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white border border-slate-700 hover:border-slate-600 hover:shadow-lg"
+          className="gap-2 bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 text-white border border-teal-700 hover:border-teal-600 hover:shadow-lg"
           onClick={() => setIsCreateModalOpen(true)}
         >
           <Plus className="w-5 h-5" />

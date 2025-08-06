@@ -182,8 +182,8 @@ export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModal
                     variant="outline"
                     className={`cursor-pointer transition-all duration-300 ${
                       formData.tools.includes(tool)
-                        ? "bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white border-slate-700 hover:border-slate-600"
-                        : "hover:bg-gradient-to-br hover:from-slate-900 hover:via-slate-800 hover:to-slate-900 hover:text-white"
+                        ? "bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 text-white border-teal-700 hover:border-teal-600"
+                        : "hover:bg-gradient-to-br hover:from-teal-600 hover:via-teal-700 hover:to-emerald-700 hover:text-white"
                     }`}
                     onClick={() => toggleTool(tool)}
                   >
@@ -247,7 +247,7 @@ export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModal
               <Button type="button" variant="outline" onClick={onClose} className="flex-1">
                 Cancel
               </Button>
-              <Button type="submit" variant="outline" className="flex-1 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white border-slate-700 hover:border-slate-600">
+              <Button type="submit" variant="outline" className="flex-1 bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 text-white border-teal-700 hover:border-teal-600">
                 <Plus className="w-4 h-4 mr-2" />
                 Create Agent
               </Button>

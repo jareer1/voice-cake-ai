@@ -34,7 +34,7 @@ export default function SignUp() {
   return (
     <div className="min-h-screen flex">
       {/* Left Panel - Dark */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 relative overflow-hidden">
         {/* Background Elements */}
         <div className="absolute inset-0">
           <div className="absolute top-20 left-10 w-64 h-64 bg-blue-600/20 rounded-full blur-3xl"></div>
@@ -62,7 +62,7 @@ export default function SignUp() {
         <div className="absolute bottom-8 left-12">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">M</span>
+              <span className="text-white font-bold text-lg">V</span>
             </div>
           </div>
         </div>
@@ -85,7 +85,7 @@ export default function SignUp() {
             <CardHeader className="text-center pb-4">
               <div className="flex items-center justify-center mb-4">
                 <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">M</span>
+                  <span className="text-white font-bold text-lg">V</span>
                 </div>
               </div>
               <CardTitle className="text-2xl font-bold text-gray-900">Create Account</CardTitle>

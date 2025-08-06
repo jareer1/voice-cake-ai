@@ -112,7 +112,7 @@ export default function Agents() {
         <Button 
           variant="outline"
           size="lg" 
-          className="gap-2 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white border-slate-700 hover:border-slate-600"
+          className="gap-2 bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 text-white border-teal-700 hover:border-teal-600"
           onClick={() => setIsCreateModalOpen(true)}
         >
           <Plus className="w-5 h-5" />
@@ -142,8 +142,8 @@ export default function Agents() {
                 size="icon"
                 onClick={() => setViewMode('grid')}
                 className={viewMode === 'grid' 
-                  ? "bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white border-slate-700 hover:border-slate-600" 
-                  : "hover:bg-gradient-to-br hover:from-slate-900 hover:via-slate-800 hover:to-slate-900 hover:text-white"
+                  ? "bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 text-white border-teal-700 hover:border-teal-600" 
+                  : "hover:bg-gradient-to-br hover:from-teal-600 hover:via-teal-700 hover:to-emerald-700 hover:text-white"
                 }
               >
                 <Grid className="w-4 h-4" />
@@ -153,8 +153,8 @@ export default function Agents() {
                 size="icon"
                 onClick={() => setViewMode('list')}
                 className={viewMode === 'list' 
-                  ? "bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white border-slate-700 hover:border-slate-600" 
-                  : "hover:bg-gradient-to-br hover:from-slate-900 hover:via-slate-800 hover:to-slate-900 hover:text-white"
+                  ? "bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 text-white border-teal-700 hover:border-teal-600" 
+                  : "hover:bg-gradient-to-br hover:from-teal-600 hover:via-teal-700 hover:to-emerald-700 hover:text-white"
                 }
               >
                 <List className="w-4 h-4" />
@@ -169,8 +169,8 @@ export default function Agents() {
                 variant="outline"
                 className={`cursor-pointer transition-all duration-300 ${
                   selectedStatus === option.value 
-                    ? "bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white border-slate-700 hover:border-slate-600" 
-                    : "hover:bg-gradient-to-br hover:from-slate-900 hover:via-slate-800 hover:to-slate-900 hover:text-white"
+                    ? "bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 text-white border-teal-700 hover:border-teal-600" 
+                    : "hover:bg-gradient-to-br hover:from-teal-600 hover:via-teal-700 hover:to-emerald-700 hover:text-white"
                 }`}
                 onClick={() => setSelectedStatus(option.value)}
               >

@@ -41,18 +41,20 @@ export function AppSidebar() {
         {/* Show only toggle button when collapsed */}
         {collapsed ? (
           <div className="p-4 flex justify-center">
-            <SidebarTrigger className="text-sidebar-foreground hover:bg-gradient-to-br hover:from-slate-900 hover:via-slate-800 hover:to-slate-900 hover:text-white transition-all duration-300" />
+            <SidebarTrigger className="text-sidebar-foreground hover:bg-gradient-to-br hover:from-teal-600 hover:via-teal-700 hover:to-emerald-700 hover:text-white transition-all duration-300" />
           </div>
         ) : (
           <>
             {/* Header */}
             <div className="p-4 border-b border-sidebar-border">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Bot className="w-5 h-5 text-white" />
-                </div>
+                <img 
+                  src="https://voicecake.vercel.app/assets/img/logo/voice-cake-logo-gradient.svg" 
+                  alt="Voice Cake Logo" 
+                  className="w-8 h-8 flex-shrink-0"
+                />
                 <div className="transition-all duration-300 ease-in-out overflow-hidden">
-                  <h2 className="font-bold text-lg bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent whitespace-nowrap">Voice Cake</h2>
+                  <h2 className="font-bold text-sm bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 bg-clip-text text-transparent whitespace-nowrap">Voice Cake</h2>
                   <p className="text-xs text-sidebar-foreground/70 whitespace-nowrap">Voice Platform</p>
                 </div>
               </div>
@@ -92,7 +94,7 @@ export function AppSidebar() {
 
             {/* Footer with toggle */}
             <div className="p-4 border-t border-sidebar-border">
-              <SidebarTrigger className="w-full text-sidebar-foreground hover:bg-gradient-to-br hover:from-slate-900 hover:via-slate-800 hover:to-slate-900 hover:text-white transition-all duration-300" />
+              <SidebarTrigger className="w-full text-sidebar-foreground hover:bg-gradient-to-br hover:from-teal-600 hover:via-teal-700 hover:to-emerald-700 hover:text-white transition-all duration-300" />
             </div>
           </>
         )}

@@ -127,7 +127,7 @@ export default function Landing() {
           className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-10"
           style={{ backgroundImage: `url(${heroImage})` }}
         />
-        <div className="relative bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <div className="relative bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
             <div className="text-center space-y-8 max-w-4xl mx-auto">
               <Badge variant="secondary" className="mx-auto">
@@ -205,7 +205,7 @@ export default function Landing() {
 
             <Card className="max-w-2xl mx-auto glass border-border/50 hover:shadow-glow transition-all duration-500">
               <CardContent className="p-8 text-center space-y-6">
-                <div className="w-20 h-20 mx-auto bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-full flex items-center justify-center animate-pulse-glow">
+                <div className="w-20 h-20 mx-auto bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 rounded-full flex items-center justify-center animate-pulse-glow">
                   <Mic className="w-10 h-10 text-white" />
                 </div>
                 
@@ -230,7 +230,7 @@ export default function Landing() {
                 <Button
                   variant="gradient"
                   size="xl"
-                  className="w-full max-w-md gap-2 font-semibold bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white hover:shadow-lg"
+                  className="w-full max-w-md gap-2 font-semibold bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 text-white hover:shadow-lg"
                   onClick={() => navigate("/test")}
                 >
                   <Play className="w-5 h-5" />
@@ -266,7 +266,7 @@ export default function Landing() {
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 <CardContent className="p-6 space-y-4">
-                  <div className="w-12 h-12 mx-auto bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-lg flex items-center justify-center">
+                  <div className="w-12 h-12 mx-auto bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 rounded-lg flex items-center justify-center">
                     <feature.icon className="w-6 h-6 text-white" />
                   </div>
                   <h3 className="font-semibold text-lg">{feature.title}</h3>
@@ -339,7 +339,7 @@ export default function Landing() {
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 {plan.popular && (
-                  <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+                  <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 text-white">
                     Most Popular
                   </Badge>
                 )}
@@ -364,7 +364,7 @@ export default function Landing() {
 
                   <Button 
                     variant={plan.popular ? "default" : "outline"} 
-                    className={plan.popular ? "w-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white hover:shadow-lg" : "w-full"}
+                    className={plan.popular ? "w-full bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 text-white hover:shadow-lg" : "w-full"}
                   >
                     {plan.name === "Enterprise" ? "Contact Sales" : "Get Started"}
                   </Button>
@@ -376,7 +376,7 @@ export default function Landing() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <section className="py-20 bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-8">
           <h2 className="text-3xl sm:text-4xl font-bold text-white">
             Ready to Transform Your Customer Experience?
@@ -410,10 +410,10 @@ export default function Landing() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 rounded-lg flex items-center justify-center">
                   <Bot className="w-5 h-5 text-white" />
                 </div>
-                <span className="font-bold text-xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent">AI Agents</span>
+                <span className="font-bold text-xl bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 bg-clip-text text-transparent">AI Agents</span>
               </div>
               <p className="text-muted-foreground text-sm">
                 The leading platform for building and deploying AI voice agents across all channels.

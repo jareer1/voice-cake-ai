@@ -14,6 +14,8 @@ import SignIn from "./pages/auth/SignIn";
 import SignUp from "./pages/auth/SignUp";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
+import VoiceClone from "./pages/VoiceClone";
+import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
 
@@ -52,18 +54,12 @@ const App = () => (
           } />
           <Route path="/voice-clone" element={
             <AppLayout>
-              <div className="text-center py-12">
-                <h2 className="text-2xl font-bold mb-4">Voice Cloning</h2>
-                <p className="text-muted-foreground">Feature coming soon...</p>
-              </div>
+              <VoiceClone />
             </AppLayout>
           } />
           <Route path="/settings" element={
             <AppLayout>
-              <div className="text-center py-12">
-                <h2 className="text-2xl font-bold mb-4">Settings</h2>
-                <p className="text-muted-foreground">Configure your platform settings...</p>
-              </div>
+              <Settings />
             </AppLayout>
           } />
           {/* Catch-all route */}
