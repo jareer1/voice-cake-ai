@@ -405,7 +405,7 @@ export default function Landing() {
           </div> */}
 
           {/* Pricing Comparison Table */}
-          <div className="mt-20">
+          <div>
             <div className="text-center space-y-4 mb-12">
               <h3 className="text-2xl sm:text-3xl font-noto-serif-bold text-gray-700">
                 Pricing Comparison
