@@ -138,7 +138,7 @@ export default function VoiceClone() {
         </div>
         <Button 
           size="lg" 
-          className="gap-2 bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 text-white border border-teal-700 hover:border-teal-600 hover:shadow-lg"
+          className="gap-2 btn-theme-gradient border border-theme-primary hover:border-theme-secondary hover:shadow-lg"
         >
           <Plus className="w-5 h-5" />
           Create Voice Clone
@@ -200,14 +200,14 @@ export default function VoiceClone() {
                 
                 <TabsContent value="record" className="space-y-4">
                   <div className="text-center space-y-4">
-                    <div className="w-24 h-24 mx-auto bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 rounded-full flex items-center justify-center">
+                    <div className="w-24 h-24 mx-auto bg-theme-gradient rounded-full flex items-center justify-center">
                       <Mic className={`w-8 h-8 text-white ${isRecording ? 'animate-pulse' : ''}`} />
                     </div>
                     <div>
                       <Button
                         size="lg"
                         variant={isRecording ? "destructive" : "default"}
-                        className={isRecording ? "" : "bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 text-white"}
+                        className={isRecording ? "" : "btn-theme-gradient"}
                         onClick={isRecording ? () => setIsRecording(false) : handleStartRecording}
                       >
                         {isRecording ? (
@@ -251,7 +251,7 @@ export default function VoiceClone() {
                 </div>
 
                 <Button 
-                  className="w-full bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 text-white border border-teal-700 hover:border-teal-600"
+                  className="w-full btn-theme-gradient border border-theme-primary hover:border-theme-secondary"
                   disabled={isUploading || isRecording}
                 >
                   Create Voice Clone

@@ -21,7 +21,7 @@ export default function ForgotPassword() {
     return (
       <div className="min-h-screen flex">
         {/* Left Panel - Dark */}
-        <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 relative overflow-hidden">
+        <div className="hidden lg:flex lg:w-1/2 bg-theme-gradient relative overflow-hidden">
           {/* Background Elements */}
           <div className="absolute inset-0">
             <div className="absolute top-20 left-10 w-64 h-64 bg-blue-600/20 rounded-full blur-3xl"></div>
@@ -36,15 +36,6 @@ export default function ForgotPassword() {
               <p className="text-lg text-slate-300 leading-relaxed">
                 We've sent password reset instructions to your email address. Please check your inbox and follow the link.
               </p>
-            </div>
-          </div>
-
-          {/* Bottom Logo */}
-          <div className="absolute bottom-8 left-12">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">M</span>
-              </div>
             </div>
           </div>
         </div>
@@ -89,7 +80,7 @@ export default function ForgotPassword() {
   return (
     <div className="min-h-screen flex">
       {/* Left Panel - Dark */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 bg-theme-gradient relative overflow-hidden">
         {/* Background Elements */}
         <div className="absolute inset-0">
           <div className="absolute top-20 left-10 w-64 h-64 bg-blue-600/20 rounded-full blur-3xl"></div>
@@ -106,15 +97,6 @@ export default function ForgotPassword() {
             </p>
           </div>
         </div>
-
-        {/* Bottom Logo */}
-        <div className="absolute bottom-8 left-12">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">M</span>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Right Panel - Reset Form */}
@@ -123,19 +105,23 @@ export default function ForgotPassword() {
           {/* Logo for mobile */}
           <div className="lg:hidden flex items-center justify-center mb-8">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
-                <Bot className="w-5 h-5 text-white" />
-              </div>
-              <span className="font-bold text-xl text-gradient">Voice Cake</span>
+              <img 
+                src="/logo.svg" 
+                alt="Voice Cake Logo" 
+                className="w-12 h-12"
+              />
+              <span className="font-bold text-xl text-theme-gradient">Voice Cake</span>
             </div>
           </div>
 
           <Card className="border-0 shadow-lg">
             <CardHeader className="text-center pb-4">
               <div className="flex items-center justify-center mb-4">
-                <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">M</span>
-                </div>
+                <img 
+                  src="/logo.svg" 
+                  alt="Voice Cake Logo" 
+                  className="w-12 h-12"
+                />
               </div>
               <CardTitle className="text-2xl font-bold text-gray-900">Forgot Password</CardTitle>
               <p className="text-gray-600 text-sm">Enter your email to reset your password</p>
@@ -156,13 +142,13 @@ export default function ForgotPassword() {
                   />
                 </div>
 
-                <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                <Button type="submit" className="w-full btn-theme-gradient">
                   Send Reset Link
                 </Button>
               </form>
 
               <div className="text-center mt-6">
-                <Link to="/auth/signin" className="inline-flex items-center text-sm text-gray-600 hover:text-gray-800">
+                <Link to="/auth/signin" className="inline-flex items-center text-sm text-theme-gradient hover:text-theme-gradient/80">
                   <ArrowLeft className="w-4 h-4 mr-1" />
                   Back to Sign In
                 </Link>

@@ -71,7 +71,7 @@ export default function PublicTest() {
         ← Back
       </button>
       {/* Left Side - Agent & Controls */}
-      <div className="w-1/2 bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 relative overflow-hidden flex items-center justify-center">
+      <div className="w-1/2 bg-theme-gradient relative overflow-hidden flex items-center justify-center">
         {/* Background Elements */}
         <div className="absolute inset-0">
           <div className="absolute top-20 left-10 w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
@@ -99,7 +99,7 @@ export default function PublicTest() {
             <div className="relative">
               <Avatar className="w-32 h-32 ring-4 ring-white/30 shadow-2xl">
                 <AvatarImage src="/placeholder.svg" />
-                <AvatarFallback className="bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 text-white text-3xl font-bold">
+                <AvatarFallback className="avatar-theme-gradient text-white text-3xl font-bold">
                   AI
                 </AvatarFallback>
               </Avatar>
@@ -240,7 +240,7 @@ export default function PublicTest() {
             </p>
             <div className="flex gap-3 justify-center">
               <Button 
-                className="bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 hover:shadow-lg text-white font-semibold px-6 py-2"
+                className="btn-theme-gradient hover:shadow-lg font-semibold px-6 py-2"
               >
                 Get Started Free
               </Button>

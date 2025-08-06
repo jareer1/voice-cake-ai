@@ -135,7 +135,7 @@ export default function Settings() {
         </div>
         <Button 
           size="lg" 
-          className="gap-2 bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 text-white border border-teal-700 hover:border-teal-600 hover:shadow-lg"
+          className="gap-2 btn-theme-gradient border border-theme-primary hover:border-theme-secondary hover:shadow-lg"
           onClick={handleSave}
           disabled={isLoading}
         >
@@ -180,7 +180,7 @@ export default function Settings() {
                 <div className="flex flex-col items-center space-y-4">
                   <Avatar className="w-24 h-24">
                     <AvatarImage src={settings.profile.avatar} />
-                    <AvatarFallback className="text-lg bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 text-white">
+                    <AvatarFallback className="text-lg avatar-theme-gradient text-white">
                       {settings.profile.firstName[0]}{settings.profile.lastName[0]}
                     </AvatarFallback>
                   </Avatar>
@@ -403,7 +403,7 @@ export default function Settings() {
                   />
                 </div>
 
-                <Button className="bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 text-white">
+                <Button className="btn-theme-gradient">
                   Update Password
                 </Button>
 
@@ -492,7 +492,7 @@ export default function Settings() {
                     <h3 className="text-2xl font-bold">{settings.billing.plan} Plan</h3>
                     <p className="text-muted-foreground">$49/month • Next billing: {settings.billing.nextBilling}</p>
                   </div>
-                  <Badge className="bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 text-white">
+                  <Badge className="badge-theme-gradient">
                     Active
                   </Badge>
                 </div>
@@ -504,7 +504,7 @@ export default function Settings() {
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div 
-                      className="bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 h-2 rounded-full transition-all duration-300"
+                      className="progress-theme-gradient h-2 rounded-full transition-all duration-300"
                       style={{ width: `${(settings.billing.usage / settings.billing.limit) * 100}%` }}
                     ></div>
                   </div>

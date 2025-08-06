@@ -1,0 +1,14 @@
+<!-- Animated SVG for ultra-real text, matching logo.svg gradient animation but with a slightly darker teal -->
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="120" viewBox="0 0 600 120" fill="none">
+  <defs>
+    <linearGradient id="animatedGradientUltraReal" x1="0%" y1="0%" x2="100%" y2="0%" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#000000">
+        <animate attributeName="stop-color" values="#000000;#1bbd8a;#000000" dur="3s" repeatCount="indefinite"/>
+      </stop>
+      <stop offset="100%" stop-color="#1bbd8a">
+        <animate attributeName="stop-color" values="#1bbd8a;#000000;#1bbd8a" dur="3s" repeatCount="indefinite"/>
+      </stop>
+    </linearGradient>
+  </defs>
+  <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" font-family="Inter, Arial, sans-serif" font-size="80" font-weight="bold" fill="url(#animatedGradientUltraReal)">ultra-real</text>
+</svg>

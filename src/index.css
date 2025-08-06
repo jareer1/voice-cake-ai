@@ -18,9 +18,16 @@
     --popover-foreground: 240 10% 9%;
 
     /* Primary - Teal/Green gradient colors */
-    --primary: 174 100% 29%;
+    /* Theme System: Change these values to change the entire app theme */
+    --theme-gradient-start: 174 100% 29%;    /* Current: teal-600 */
+    --theme-gradient-mid: 174 100% 25%;      /* Current: teal-700 */  
+    --theme-gradient-end: 160 85% 39%;       /* Current: emerald-700 */
+    --theme-border-primary: 174 100% 25%;    /* Current: teal-700 */
+    --theme-border-secondary: 174 100% 35%;  /* Current: teal-600 */
+    
+    --primary: var(--theme-gradient-start);
     --primary-foreground: 0 0% 98%;
-    --primary-hover: 174 100% 25%;
+    --primary-hover: var(--theme-gradient-mid);
     --primary-glow: 174 100% 40%;
 
     /* Secondary - Soft teal-gray */
@@ -205,5 +212,112 @@
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background-color: hsl(var(--muted-foreground));
     border-radius: 2px;
+  }
+}
+
+/* Ultra-real animated text - smooth gradient animation with darker colors */
+@keyframes ultraRealGradient {
+  0% { 
+    background-position: 0% 50%;
+  }
+  50% { 
+    background-position: 100% 50%;
+  }
+  100% { 
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes ultraRealGlow {
+  0%, 100% { 
+    text-shadow: 0 0 20px rgba(27, 189, 138, 0.4);
+  }
+  50% { 
+    text-shadow: 0 0 30px rgba(27, 189, 138, 0.8), 0 0 40px rgba(27, 189, 138, 0.3);
+  }
+}
+
+.ultra-real-animated {
+  background: linear-gradient(
+    135deg, 
+    #0d5940 0%, 
+    #5cf6ca 20%, 
+    #064e3b 40%, 
+    #5cf6ca 60%, 
+    #022c22 80%, 
+    #1bbd8a 100%
+  );
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: ultraRealGradient 3s ease-in-out infinite, ultraRealGlow 2s ease-in-out infinite;
+  display: inline;
+  font-weight: inherit;
+}
+
+/* Fallback for browsers that don't support background-clip: text */
+@supports not (-webkit-background-clip: text) {
+  .ultra-real-animated {
+    color: #1bbd8a;
+    -webkit-text-fill-color: unset;
+    background: none;
+    animation: ultraRealGlow 2s ease-in-out infinite;
+  }
+}
+
+/* Theme Utility Classes - Use these to maintain consistent theming */
+@layer utilities {
+  /* Main gradient button - matches current: from-teal-600 via-teal-700 to-emerald-700 */
+  .btn-theme-gradient {
+    background: linear-gradient(135deg, hsl(var(--theme-gradient-start)), hsl(var(--theme-gradient-mid)), hsl(var(--theme-gradient-end)));
+    color: white;
+    border-color: hsl(var(--theme-border-primary));
+  }
+  
+  .btn-theme-gradient:hover {
+    border-color: hsl(var(--theme-border-secondary));
+  }
+
+  /* Avatar gradient background */
+  .avatar-theme-gradient {
+    background: linear-gradient(135deg, hsl(var(--theme-gradient-start)), hsl(var(--theme-gradient-mid)), hsl(var(--theme-gradient-end)));
+  }
+
+  /* Badge with theme gradient - for active status */
+  .badge-theme-gradient {
+    background: linear-gradient(135deg, hsl(var(--theme-gradient-start)), hsl(var(--theme-gradient-mid)), hsl(var(--theme-gradient-end)));
+    color: white;
+    border-color: hsl(var(--theme-border-primary));
+  }
+
+  /* Text gradient using theme colors */
+  .text-theme-gradient {
+    background: linear-gradient(135deg, hsl(var(--theme-gradient-start)), hsl(var(--theme-gradient-mid)), hsl(var(--theme-gradient-end)));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Background gradient for large sections */
+  .bg-theme-gradient {
+    background: linear-gradient(135deg, hsl(var(--theme-gradient-start)), hsl(var(--theme-gradient-mid)), hsl(var(--theme-gradient-end)));
+  }
+
+  /* Individual color utilities for borders and backgrounds */
+  .border-theme-primary { border-color: hsl(var(--theme-border-primary)); }
+  .border-theme-secondary { border-color: hsl(var(--theme-border-secondary)); }
+  .bg-theme-start { background-color: hsl(var(--theme-gradient-start)); }
+  .bg-theme-mid { background-color: hsl(var(--theme-gradient-mid)); }
+  .bg-theme-end { background-color: hsl(var(--theme-gradient-end)); }
+
+  /* Progress bar theme */
+  .progress-theme-gradient {
+    background: linear-gradient(135deg, hsl(var(--theme-gradient-start)), hsl(var(--theme-gradient-mid)), hsl(var(--theme-gradient-end)));
+  }
+
+  /* Hover effects */
+  .hover-theme-glow:hover {
+    box-shadow: 0 0 40px hsl(var(--theme-gradient-start) / 0.3);
   }
 }

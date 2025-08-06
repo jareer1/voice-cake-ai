@@ -7,17 +7,17 @@ export default function AppNav() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
+    <nav className="sticky top-0 z-50 bg-white backdrop-blur-md border-b border-border shadow-sm">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <div className="flex items-center gap-3">
             <img 
               src="https://voicecake.vercel.app/assets/img/logo/voice-cake-logo-gradient.svg" 
               alt="Voice Cake Logo" 
-              className="w-8 h-8"
+              className="w-12 h-12"
             />
-            <span className="font-bold text-sm bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 bg-clip-text text-transparent">Voice Cake</span>
+            <span className="font-bold text-lg text-theme-gradient">Voice Cake</span>
           </div>
 
           {/* Desktop Navigation */}
@@ -42,7 +42,7 @@ export default function AppNav() {
               variant="outline"
               size="sm"
               onClick={() => navigate("/auth/signin")}
-              className="bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 text-white border-teal-700 hover:border-teal-600"
+              className="btn-theme-gradient border-theme-primary hover:border-theme-secondary"
             >
               Sign In
             </Button>
@@ -85,7 +85,7 @@ export default function AppNav() {
               <Button 
                 variant="outline"
                 size="sm" 
-                className="w-full bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 text-white border-teal-700 hover:border-teal-600"
+                className="w-full btn-theme-gradient border-theme-primary hover:border-theme-secondary"
                 onClick={() => navigate("/auth/signin")}
               >
                 Sign In

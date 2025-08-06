@@ -20,7 +20,7 @@ export function AgentCard({ agent, onEdit }: AgentCardProps) {
           <div className="flex items-center gap-3">
             <Avatar className="w-12 h-12 ring-2 ring-primary/20">
               <AvatarImage src={agent.avatar} />
-              <AvatarFallback className="bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 text-white font-semibold">
+              <AvatarFallback className="avatar-theme-gradient text-white font-semibold">
                 {agent.name.slice(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
@@ -74,7 +74,7 @@ export function AgentCard({ agent, onEdit }: AgentCardProps) {
         <Button 
           variant="outline"
           size="sm" 
-          className="flex-1 gap-2 bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 text-white border-teal-700 hover:border-teal-600"
+          className="flex-1 gap-2 btn-theme-gradient border-theme-primary hover:border-theme-secondary"
           onClick={() => navigate(`/agents/${agent.id}/test`)}
         >
           <Play className="w-4 h-4" />

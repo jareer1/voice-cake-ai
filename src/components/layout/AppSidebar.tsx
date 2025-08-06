@@ -54,7 +54,7 @@ export function AppSidebar() {
                   className="w-8 h-8 flex-shrink-0"
                 />
                 <div className="transition-all duration-300 ease-in-out overflow-hidden">
-                  <h2 className="font-bold text-sm bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 bg-clip-text text-transparent whitespace-nowrap">Voice Cake</h2>
+                  <h2 className="font-bold text-sm text-theme-gradient whitespace-nowrap">Voice Cake</h2>
                   <p className="text-xs text-sidebar-foreground/70 whitespace-nowrap">Voice Platform</p>
                 </div>
               </div>

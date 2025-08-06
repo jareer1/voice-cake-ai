@@ -21,7 +21,7 @@ export function TopNav() {
       <div className="flex items-center gap-3">
         <Avatar className="w-8 h-8">
           <AvatarImage src="/placeholder.svg" />
-          <AvatarFallback className="bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 text-white">
+          <AvatarFallback className="avatar-theme-gradient text-white">
             JD
           </AvatarFallback>
         </Avatar>

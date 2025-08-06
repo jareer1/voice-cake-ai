@@ -112,7 +112,7 @@ export default function Agents() {
         <Button 
           variant="outline"
           size="lg" 
-          className="gap-2 bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 text-white border-teal-700 hover:border-teal-600"
+          className="gap-2 btn-theme-gradient border-theme-primary hover:border-theme-secondary"
           onClick={() => setIsCreateModalOpen(true)}
         >
           <Plus className="w-5 h-5" />
@@ -142,8 +142,8 @@ export default function Agents() {
                 size="icon"
                 onClick={() => setViewMode('grid')}
                 className={viewMode === 'grid' 
-                  ? "bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 text-white border-teal-700 hover:border-teal-600" 
-                  : "hover:bg-gradient-to-br hover:from-teal-600 hover:via-teal-700 hover:to-emerald-700 hover:text-white"
+                  ? "btn-theme-gradient border-theme-primary hover:border-theme-secondary" 
+                  : "hover:btn-theme-gradient hover:border-theme-primary"
                 }
               >
                 <Grid className="w-4 h-4" />
@@ -153,8 +153,8 @@ export default function Agents() {
                 size="icon"
                 onClick={() => setViewMode('list')}
                 className={viewMode === 'list' 
-                  ? "bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 text-white border-teal-700 hover:border-teal-600" 
-                  : "hover:bg-gradient-to-br hover:from-teal-600 hover:via-teal-700 hover:to-emerald-700 hover:text-white"
+                  ? "btn-theme-gradient border-theme-primary hover:border-theme-secondary" 
+                  : "hover:btn-theme-gradient hover:border-theme-primary"
                 }
               >
                 <List className="w-4 h-4" />
@@ -169,8 +169,8 @@ export default function Agents() {
                 variant="outline"
                 className={`cursor-pointer transition-all duration-300 ${
                   selectedStatus === option.value 
-                    ? "bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 text-white border-teal-700 hover:border-teal-600" 
-                    : "hover:bg-gradient-to-br hover:from-teal-600 hover:via-teal-700 hover:to-emerald-700 hover:text-white"
+                    ? "badge-theme-gradient border-theme-primary hover:border-theme-secondary" 
+                    : "hover:badge-theme-gradient hover:border-theme-primary"
                 }`}
                 onClick={() => setSelectedStatus(option.value)}
               >
