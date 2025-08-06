@@ -2,9 +2,42 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
+// Helper function to get the app subdomain URL
+const getAppUrl = (path: string = '') => {
+  const currentHost = window.location.hostname;
+  const protocol = window.location.protocol;
+  
+  // For local development
+  if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
+    return path;
+  }
+  
+  // For production - redirect to app subdomain
+  const mainDomain = currentHost.replace(/^app\./, '');
+  return `${protocol}//app.${mainDomain}${path}`;
+};
+
 export default function AppNav() {
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const handleDashboardClick = () => {
+    const appUrl = getAppUrl('/dashboard');
+    if (appUrl.startsWith('http')) {
+      window.location.href = appUrl;
+    } else {
+      navigate(appUrl);
+    }
+  };
+
+  const handleSignInClick = () => {
+    const appUrl = getAppUrl('/auth/signin');
+    if (appUrl.startsWith('http')) {
+      window.location.href = appUrl;
+    } else {
+      navigate(appUrl);
+    }
+  };
 
   return (
     <nav className="sticky top-0 z-50 bg-white backdrop-blur-md border-b border-border shadow-sm">
@@ -34,14 +67,14 @@ export default function AppNav() {
             <Button 
               variant="outline" 
               size="sm"
-              onClick={() => navigate("/dashboard")}
+              onClick={handleDashboardClick}
             >
               Dashboard
             </Button>
             <Button 
               variant="outline"
               size="sm"
-              onClick={() => navigate("/auth/signin")}
+              onClick={handleSignInClick}
               className="btn-theme-gradient border-theme-primary hover:border-theme-secondary"
             >
               Sign In
@@ -77,7 +110,7 @@ export default function AppNav() {
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => navigate("/dashboard")}
+                onClick={handleDashboardClick}
                 className="w-full"
               >
                 Dashboard
@@ -86,7 +119,7 @@ export default function AppNav() {
                 variant="outline"
                 size="sm" 
                 className="w-full btn-theme-gradient border-theme-primary hover:border-theme-secondary"
-                onClick={() => navigate("/auth/signin")}
+                onClick={handleSignInClick}
               >
                 Sign In
               </Button>

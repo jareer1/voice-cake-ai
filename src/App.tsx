@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppLayout } from "./components/layout/AppLayout";
 import Dashboard from "./pages/Dashboard";
 import Agents from "./pages/Agents";
@@ -19,55 +19,117 @@ import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          {/* Landing page as default */}
-          <Route path="/" element={<Landing />} />
-          <Route path="/landing" element={<Landing />} />
-          {/* Auth routes */}
-          <Route path="/auth/signin" element={<SignIn />} />
-          <Route path="/auth/signup" element={<SignUp />} />
-          <Route path="/auth/forgot-password" element={<ForgotPassword />} />
-          <Route path="/auth/reset-password" element={<ResetPassword />} />
-          {/* Public routes */}
-          <Route path="/test" element={<PublicTest />} />
-          {/* Protected app routes */}
-          <Route path="/dashboard" element={
-            <AppLayout>
-              <Dashboard />
-            </AppLayout>
-          } />
-          <Route path="/agents" element={
-            <AppLayout>
-              <Agents />
-            </AppLayout>
-          } />
-          <Route path="/agents/:id/test" element={
-            <AppLayout>
-              <AgentTest />
-            </AppLayout>
-          } />
-          <Route path="/voice-clone" element={
-            <AppLayout>
-              <VoiceClone />
-            </AppLayout>
-          } />
-          <Route path="/settings" element={
-            <AppLayout>
-              <Settings />
-            </AppLayout>
-          } />
-          {/* Catch-all route */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+// Helper function to detect if we're on the app subdomain
+const isAppSubdomain = () => {
+  const hostname = window.location.hostname;
+  return hostname.startsWith('app.') || hostname === 'localhost' || hostname === '127.0.0.1';
+};
 
-export default App;
+// Component to handle subdomain redirects
+const SubdomainRedirect = ({ to, isApp }: { to: string; isApp: boolean }) => {
+  const currentHost = window.location.hostname;
+  
+  if (isApp) {
+    // Redirect to app subdomain
+    const mainDomain = currentHost.replace(/^app\./, '');
+    const protocol = window.location.protocol;
+    window.location.href = `${protocol}//app.${mainDomain}${to}`;
+  } else {
+    // Redirect to main domain
+    const mainDomain = currentHost.replace(/^app\./, '');
+    const protocol = window.location.protocol;
+    window.location.href = `${protocol}//${mainDomain}${to}`;
+  }
+  
+  return <div>Redirecting...</div>;
+};
+
+const App = () => {
+  const isApp = isAppSubdomain();
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            {isApp ? (
+              // App subdomain routes (app.abc.com)
+              <>
+                {/* Redirect root to dashboard */}
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                
+                {/* Auth routes on app subdomain */}
+                <Route path="/auth/signin" element={<SignIn />} />
+                <Route path="/auth/signup" element={<SignUp />} />
+                <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+                <Route path="/auth/reset-password" element={<ResetPassword />} />
+                
+                {/* App routes */}
+                <Route path="/dashboard" element={
+                  <AppLayout>
+                    <Dashboard />
+                  </AppLayout>
+                } />
+                <Route path="/agents" element={
+                  <AppLayout>
+                    <Agents />
+                  </AppLayout>
+                } />
+                <Route path="/agents/:id/test" element={
+                  <AppLayout>
+                    <AgentTest />
+                  </AppLayout>
+                } />
+                <Route path="/voice-clone" element={
+                  <AppLayout>
+                    <VoiceClone />
+                  </AppLayout>
+                } />
+                <Route path="/settings" element={
+                  <AppLayout>
+                    <Settings />
+                  </AppLayout>
+                } />
+                
+                {/* Redirect landing page requests to main domain */}
+                <Route path="/landing" element={<SubdomainRedirect to="/" isApp={false} />} />
+                <Route path="/test" element={<SubdomainRedirect to="/test" isApp={false} />} />
+                
+                {/* Catch-all route */}
+                <Route path="*" element={<NotFound />} />
+              </>
+            ) : (
+              // Main domain routes (abc.com)
+              <>
+                {/* Landing and marketing pages */}
+                <Route path="/" element={<Landing />} />
+                <Route path="/landing" element={<Landing />} />
+                
+                {/* Public routes */}
+                <Route path="/test" element={<PublicTest />} />
+                
+                {/* Redirect auth to app subdomain */}
+                <Route path="/auth/signin" element={<SubdomainRedirect to="/auth/signin" isApp={true} />} />
+                <Route path="/auth/signup" element={<SubdomainRedirect to="/auth/signup" isApp={true} />} />
+                <Route path="/auth/forgot-password" element={<SubdomainRedirect to="/auth/forgot-password" isApp={true} />} />
+                <Route path="/auth/reset-password" element={<SubdomainRedirect to="/auth/reset-password" isApp={true} />} />
+                
+                {/* Redirect app routes to app subdomain */}
+                <Route path="/dashboard" element={<SubdomainRedirect to="/dashboard" isApp={true} />} />
+                <Route path="/agents" element={<SubdomainRedirect to="/agents" isApp={true} />} />
+                <Route path="/agents/:id/test" element={<SubdomainRedirect to={window.location.pathname} isApp={true} />} />
+                <Route path="/voice-clone" element={<SubdomainRedirect to="/voice-clone" isApp={true} />} />
+                <Route path="/settings" element={<SubdomainRedirect to="/settings" isApp={true} />} />
+                
+                {/* Catch-all route */}
+                <Route path="*" element={<NotFound />} />
+              </>
+            )}
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};

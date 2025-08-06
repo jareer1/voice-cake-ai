@@ -19,9 +19,38 @@ import {
 import heroImage from "@/assets/hero-bg.jpg";
 import AppNav from "@/components/layout/AppNav";
 
+// Helper function to get the app subdomain URL
+const getAppUrl = (path: string = '') => {
+  const currentHost = window.location.hostname;
+  const protocol = window.location.protocol;
+  
+  // For local development
+  if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
+    return path;
+  }
+  
+  // For production - redirect to app subdomain
+  const mainDomain = currentHost.replace(/^app\./, '');
+  return `${protocol}//app.${mainDomain}${path}`;
+};
+
 export default function Landing() {
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const handleTestClick = () => {
+    // Keep test on main domain for public access
+    navigate("/test");
+  };
+
+  const handleDashboardClick = () => {
+    const appUrl = getAppUrl('/dashboard');
+    if (appUrl.startsWith('http')) {
+      window.location.href = appUrl;
+    } else {
+      navigate(appUrl);
+    }
+  };
 
   const features = [
     {
@@ -147,7 +176,7 @@ export default function Landing() {
                   variant="default"
                   size="xl"
                   className="btn-theme-gradient font-semibold gap-2"
-                  onClick={() => navigate("/test")}
+                  onClick={handleTestClick}
                 >
                   <Play className="w-5 h-5" />
                   Try Agent for Free
@@ -226,7 +255,7 @@ export default function Landing() {
                   variant="gradient"
                   size="xl"
                   className="w-full max-w-md gap-2 font-semibold btn-theme-gradient hover:shadow-lg"
-                  onClick={() => navigate("/test")}
+                  onClick={handleTestClick}
                 >
                   <Play className="w-5 h-5" />
                   Start 5-Minute Free Test
