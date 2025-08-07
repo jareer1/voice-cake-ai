@@ -7,9 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Bot } from "lucide-react";
+import { useAuth } from "../../context/authContext";
+import { toast } from "sonner";
 
 export default function SignUp() {
   const navigate = useNavigate();
+  const { signup } = useAuth();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -18,13 +21,44 @@ export default function SignUp() {
     confirmPassword: "",
     agreeToTerms: false
   });
+  const [error, setError] = useState<string>("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle sign up logic here
-    console.log("Sign up:", formData);
-    // For demo, navigate to dashboard
-    navigate("/dashboard");
+    setError("");
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      toast.error("Passwords do not match", { position: "top-right" });
+      return;
+    }
+    if (!formData.agreeToTerms) {
+      setError("You must agree to the Terms of Service and Privacy Policy");
+      toast.error("You must agree to the Terms of Service and Privacy Policy", { position: "top-right" });
+      return;
+    }
+    setLoading(true);
+    try {
+      const res: any = await signup(formData.email, formData.email, formData.password);
+      if (res && typeof res === "object" && "success" in res) {
+        if (res.success) {
+          setError(""); // Clear error so it doesn't show in red
+          toast.success(res.message || "Account created successfully. Redirecting to login...", { position: "top-right" });
+          window.setTimeout(() => navigate("/auth/signin"), 1200);
+        } else {
+          setError(""); // Don't show error in red, only use toast
+          toast.error(res.message || "Signup failed", { position: "top-right" });
+        }
+      } else {
+        setError("Signup failed");
+        toast.error("Signup failed", { position: "top-right" });
+      }
+    } catch (err: any) {
+      setError(""); // Don't show error in red, only use toast
+      toast.error(err.message || "Signup failed", { position: "top-right" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleInputChange = (field: string, value: string | boolean) => {
@@ -196,8 +230,13 @@ export default function SignUp() {
                   </Label>
                 </div>
 
-                <Button type="submit" className="w-full btn-theme-gradient">
-                  Create Account
+                {error && !loading && (
+                  // Only show error in red if not already showing in toast
+                  <div className="text-red-500 text-sm">{error}</div>
+                )}
+
+                <Button type="submit" className="w-full btn-theme-gradient" disabled={loading}>
+                  {loading ? "Creating Account..." : "Create Account"}
                 </Button>
               </form>
 

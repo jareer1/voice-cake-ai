@@ -7,21 +7,66 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Bot } from "lucide-react";
+import { useAuth } from "../../context/authContext";
+import { toast } from "sonner";
 
 export default function SignIn() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     username: "",
     password: "",
     rememberDevice: false
   });
+  const [error, setError] = useState<string>("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle sign in logic here
-    console.log("Sign in:", formData);
-    // For demo, navigate to dashboard
-    navigate("/dashboard");
+    setLoading(true);
+    setError("");
+    try {
+      // Use login from context, get response
+      const res: any = await login(formData.username, formData.password);
+      // Only check res if login returns something
+      if (res && typeof res === "object" && "success" in res) {
+        if (res.success && res.data) {
+          localStorage.setItem("authToken", res.data.access_token);
+          localStorage.setItem("userId", String(res.data.user.id));
+          localStorage.setItem("username", res.data.user.username);
+          localStorage.setItem("email", res.data.user.email);
+          toast.success(res.message || "Login successful", {
+            position: "top-right"
+          });
+          setTimeout(() => navigate("/dashboard"), 1200); // Delay navigation so toast is visible
+        } else {
+          toast.error(res.message || "Login failed", {
+            position: "top-right"
+          });
+          setError(res.message || "Login failed");
+        }
+      } else {
+        // fallback: check context
+        if (localStorage.getItem("authToken")) {
+          toast.success("Login successful", {
+            position: "top-right"
+          });
+          navigate("/dashboard");
+        } else {
+          toast.error("Login failed", {
+            position: "top-right"
+          });
+          setError("Login failed");
+        }
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Login failed", {
+        position: "top-right"
+      });
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleInputChange = (field: string, value: string | boolean) => {
@@ -153,8 +198,10 @@ export default function SignIn() {
                   </Link>
                 </div>
 
-                <Button type="submit" className="w-full btn-theme-gradient">
-                  Sign In
+                {error && <div className="text-red-500 text-sm">{error}</div>}
+
+                <Button type="submit" className="w-full btn-theme-gradient" disabled={loading}>
+                  {loading ? "Signing In..." : "Sign In"}
                 </Button>
               </form>
 

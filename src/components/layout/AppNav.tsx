@@ -37,15 +37,6 @@ export default function AppNav() {
     }
   };
 
-  const handleSignInClick = () => {
-    const appUrl = getAppUrl('/auth/signin');
-    if (appUrl.startsWith('http')) {
-      window.location.href = appUrl;
-    } else {
-      navigate(appUrl);
-    }
-  };
-
   return (
     <nav className="sticky top-0 z-50 bg-white backdrop-blur-md border-b border-border shadow-sm">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -77,14 +68,6 @@ export default function AppNav() {
               onClick={handleDashboardClick}
             >
               Dashboard
-            </Button>
-            <Button 
-              variant="outline"
-              size="sm"
-              onClick={handleSignInClick}
-              className="btn-theme-gradient border-theme-primary hover:border-theme-secondary"
-            >
-              Sign In
             </Button>
           </div>
 
@@ -121,14 +104,6 @@ export default function AppNav() {
                 className="w-full"
               >
                 Dashboard
-              </Button>
-              <Button 
-                variant="outline"
-                size="sm" 
-                className="w-full btn-theme-gradient border-theme-primary hover:border-theme-secondary"
-                onClick={handleSignInClick}
-              >
-                Sign In
               </Button>
             </div>
           </div>
