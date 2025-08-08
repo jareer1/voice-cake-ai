@@ -2,40 +2,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
-// Helper function to get the app subdomain URL
-const getAppUrl = (path: string = '') => {
-  const currentHost = window.location.hostname;
-  const protocol = window.location.protocol;
-  
-  // For local development
-  if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
-    return path;
-  }
-  
-  // For production - redirect to app subdomain
-  // Remove both 'app.' and 'www.' prefixes to get the main domain
-  let mainDomain = currentHost.replace(/^(app\.|www\.)/, '');
-  
-  // If the domain still has www after removing app, remove it
-  if (mainDomain.startsWith('www.')) {
-    mainDomain = mainDomain.replace(/^www\./, '');
-  }
-  
-  return `${protocol}//app.${mainDomain}${path}`;
-};
-
 export default function AppNav() {
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-
-  const handleDashboardClick = () => {
-    const appUrl = getAppUrl('/dashboard');
-    if (appUrl.startsWith('http')) {
-      window.location.href = appUrl;
-    } else {
-      navigate(appUrl);
-    }
-  };
 
   return (
     <nav className="sticky top-0 z-50 bg-white backdrop-blur-md border-b border-border shadow-sm">
@@ -65,7 +34,7 @@ export default function AppNav() {
             <Button 
               variant="outline" 
               size="sm"
-              onClick={handleDashboardClick}
+              onClick={() => navigate('/dashboard')}
             >
               Dashboard
             </Button>
@@ -100,7 +69,7 @@ export default function AppNav() {
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={handleDashboardClick}
+                onClick={() => navigate('/dashboard')}
                 className="w-full"
               >
                 Dashboard

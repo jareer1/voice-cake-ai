@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -28,6 +28,9 @@ import {
   Mail,
   Calendar
 } from "lucide-react";
+import { ApiKeyInfo, useFinance } from "@/context/financeContext";
+import { toast } from "sonner";
+import GreenSpinner from "@/components/ui/GreenSpinner";
 
 interface UserSettings {
   profile: {
@@ -442,6 +445,7 @@ export default function Settings() {
               </CardContent>
             </Card>
 
+            {/* API Keys Section - moved from ApiKeys.tsx, now with tabs for each scope */}
             <Card className="hover:shadow-md transition-shadow">
               <CardHeader>
                 <CardTitle>API Keys</CardTitle>
@@ -450,30 +454,18 @@ export default function Settings() {
                 </p>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <Key className="w-5 h-5 text-muted-foreground" />
-                      <div>
-                        <p className="font-medium">Production API Key</p>
-                        <p className="text-sm text-muted-foreground">sk-prod-****...****1234</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  <Button variant="outline" className="w-full">
-                    <Key className="w-4 h-4 mr-2" />
-                    Generate New API Key
-                  </Button>
-                </div>
+                <Tabs defaultValue="conversa" className="space-y-4">
+                  <TabsList className="grid w-full grid-cols-3 mb-4">
+                    <TabsTrigger value="conversa" className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-700 data-[state=active]:to-emerald-700 data-[state=active]:text-white">Conversa</TabsTrigger>
+                    <TabsTrigger value="empath" className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-700 data-[state=active]:to-emerald-700 data-[state=active]:text-white">Empath</TabsTrigger>
+                    <TabsTrigger value="wallet" className="gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-700 data-[state=active]:to-emerald-700 data-[state=active]:text-white">Wallet</TabsTrigger>
+                  </TabsList>
+                  {['conversa', 'empath', 'wallet'].map(scope => (
+                    <TabsContent value={scope} key={scope}>
+                      <ApiKeyTab scope={scope} />
+                    </TabsContent>
+                  ))}
+                </Tabs>
               </CardContent>
             </Card>
           </div>
@@ -648,6 +640,101 @@ export default function Settings() {
           </Card>
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+// Add this component inside the file (below Settings)
+function ApiKeyTab({ scope }: { scope: string }) {
+  const { listApiKeys, rotateApiKey, revokeApiKey } = useFinance();
+  const [keys, setKeys] = useState<ApiKeyInfo[]>([]);
+  const [revealed, setRevealed] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      setFetching(true);
+      try {
+        const items = await listApiKeys(scope);
+        setKeys(items.filter(k => k.scope === scope));
+      } catch {
+        setKeys([]);
+      } finally {
+        setFetching(false);
+      }
+    };
+    load();
+  }, [scope, listApiKeys]);
+
+  const handleRotate = async () => {
+    setLoading(true);
+    try {
+      const data = await rotateApiKey(scope);
+      setRevealed(true);
+      setKeys(prev => [{ id: data.id, scope: data.scope, preview: data.api_key_raw || undefined, is_active: true }, ...prev]);
+      if (data.api_key_raw) toast.success("New API key generated. Copy and store it securely.");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to rotate API key");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRevoke = async () => {
+    setLoading(true);
+    try {
+      if (!keys[0]?.id) return;
+      await revokeApiKey(keys[0].id as number);
+      setKeys(prev => prev.map((k, i) => (i === 0 ? { ...k, is_active: false } : k)));
+      toast.success("API key revoked");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to revoke API key");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {fetching ? (
+        <div className="flex justify-center py-8">
+          <GreenSpinner />
+        </div>
+      ) : (
+        <>
+          <div className="flex gap-2 items-center">
+            <Button className="btn-theme-gradient" onClick={handleRotate} disabled={loading}>
+              Generate New API Key
+            </Button>
+            <Button variant="outline" onClick={handleRevoke} disabled={loading}>
+              Revoke Latest Key
+            </Button>
+          </div>
+          {keys.length > 0 && keys[0]?.preview && keys[0].preview.length > 12 ? (
+            <div className="space-y-2">
+              <div className="text-sm text-muted-foreground">Your new API key (visible once)</div>
+              <Input readOnly value={keys[0].preview as string} onFocus={e => e.currentTarget.select()} />
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground">Keys are masked after creation. Generate a new one to view raw value once.</div>
+          )}
+          <div className="pt-4">
+            <div className="text-sm font-medium mb-2">Your Keys</div>
+            <div className="space-y-2">
+              {keys.map(k => (
+                <div key={String(k.id)} className="flex items-center justify-between border rounded px-3 py-2">
+                  <div className="text-sm">
+                    <div className="font-mono">{k.preview || "************"}</div>
+                    <div className="text-xs text-muted-foreground">scope: {k.scope} • {k.is_active ? "active" : "revoked"}</div>
+                  </div>
+                  <div className="text-xs text-muted-foreground">{k.created_at ? new Date(k.created_at).toLocaleString() : ""}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
