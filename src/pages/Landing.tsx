@@ -19,27 +19,6 @@ import {
 import heroImage from "@/assets/hero-bg.jpg";
 import AppNav from "@/components/layout/AppNav";
 
-// Helper function to get the app subdomain URL
-const getAppUrl = (path: string = '') => {
-  const currentHost = window.location.hostname;
-  const protocol = window.location.protocol;
-  
-  // For local development
-  if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
-    return path;
-  }
-  
-  // For production - redirect to app subdomain
-  // Remove both 'app.' and 'www.' prefixes to get the main domain
-  let mainDomain = currentHost.replace(/^(app\.|www\.)/, '');
-  
-  // If the domain still has www after removing app, remove it
-  if (mainDomain.startsWith('www.')) {
-    mainDomain = mainDomain.replace(/^www\./, '');
-  }
-  
-  return `${protocol}//app.${mainDomain}${path}`;
-};
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -51,12 +30,7 @@ export default function Landing() {
   };
 
   const handleDashboardClick = () => {
-    const appUrl = getAppUrl('/dashboard');
-    if (appUrl.startsWith('http')) {
-      window.location.href = appUrl;
-    } else {
-      navigate(appUrl);
-    }
+    navigate('/dashboard');
   };
 
   const features = [
@@ -194,6 +168,15 @@ export default function Landing() {
                   className="font-semibold gap-2 text-black border-black/20 hover:bg-black/5"
                 >
                   Watch Demo
+                  <ArrowRight className="w-5 h-5" />
+                </Button>
+                <Button
+                  variant="gradient"
+                  size="xl"
+                  className="font-semibold gap-2 btn-theme-gradient"
+                  onClick={() => navigate("/plan-selection?bot=conversa")}
+                >
+                  See Plans
                   <ArrowRight className="w-5 h-5" />
                 </Button>
               </div>
@@ -410,6 +393,10 @@ export default function Landing() {
               <h3 className="text-2xl sm:text-3xl font-noto-serif-bold text-gray-700">
                 Pricing Comparison
               </h3>
+              <div className="flex justify-center gap-3">
+                <Button variant="outline" onClick={() => navigate('/plan-selection?bot=conversa')}>Conversa Plans</Button>
+                <Button variant="outline" onClick={() => navigate('/plan-selection?bot=empath')}>Empath Plans</Button>
+              </div>
             </div>
 
             <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden">

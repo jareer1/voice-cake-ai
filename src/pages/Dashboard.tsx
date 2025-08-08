@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AgentCard } from "@/components/agents/AgentCard";
@@ -6,6 +6,7 @@ import { AgentTestInterface } from "@/components/agents/AgentTestInterface";
 import { CreateAgentModal } from "@/components/modals/CreateAgentModal";
 import { Plus, Bot, Users, Clock, TrendingUp } from "lucide-react";
 import { Agent } from "@/types/agent";
+import { useFinance } from "@/context/financeContext";
 
 // Mock data
 const mockAgents: Agent[] = [
@@ -61,6 +62,11 @@ export default function Dashboard() {
   const [agents] = useState<Agent[]>(mockAgents);
   const [testingAgent, setTestingAgent] = useState<Agent | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const { activeSubscriptions, refreshSubscriptions } = useFinance();
+
+  useEffect(() => {
+    refreshSubscriptions();
+  }, [refreshSubscriptions]);
 
   const stats = [
     {
@@ -122,6 +128,34 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      {/* Subscription Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {activeSubscriptions.conversa && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Conversa Plan</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-muted-foreground">{activeSubscriptions.conversa.plan.name}</div>
+              <div className="text-lg font-semibold">Minutes left: {activeSubscriptions.conversa.minutes_left}</div>
+              <div className="text-sm">Expires: {new Date(activeSubscriptions.conversa.expires_at).toLocaleDateString()}</div>
+            </CardContent>
+          </Card>
+        )}
+        {activeSubscriptions.empath && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Empath Plan</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-muted-foreground">{activeSubscriptions.empath.plan.name}</div>
+              <div className="text-lg font-semibold">Minutes left: {activeSubscriptions.empath.minutes_left}</div>
+              <div className="text-sm">Expires: {new Date(activeSubscriptions.empath.expires_at).toLocaleDateString()}</div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Recent Agents */}
