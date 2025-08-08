@@ -1,10 +1,15 @@
 export interface Agent {
-  id: string;
+  id: number;
   name: string;
   description: string;
-  avatar?: string;
+  avatar_url?: string | null;
   status: 'active' | 'inactive' | 'training';
-  voice: {
+  total_sessions: number;
+  last_used: string | null;
+  created_at: string;
+  
+  // Optional fields for extended agent data (if needed)
+  voice?: {
     provider: 'elevenlabs' | 'openai' | 'custom';
     voiceId: string;
     settings: {
@@ -13,26 +18,22 @@ export interface Agent {
       stability?: number;
     };
   };
-  tools: string[];
-  personality: {
+  tools?: string[];
+  personality?: {
     tone: string;
     style: string;
     instructions: string;
   };
-  integrations: {
+  integrations?: {
     whatsapp?: boolean;
     voice_calls?: boolean;
     web?: boolean;
   };
-  analytics: {
+  analytics?: {
     totalSessions: number;
     avgSessionLength: number;
     satisfactionScore: number;
   };
-  totalSessions: number;
-  lastUsed: string;
-  createdAt: string;
-  updatedAt: string;
 }
 
 export interface Tool {
