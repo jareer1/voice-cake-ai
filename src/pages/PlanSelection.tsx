@@ -10,7 +10,7 @@ const botTypes: BotType[] = ["conversa", "empath"];
 export default function PlanSelection() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
-  const { listPlans } = useFinance();
+  const { listPlans, activeSubscriptions, subscriptionsLoaded } = useFinance();
   const [plans, setPlans] = useState<Record<BotType, SubscriptionPlan[]>>({ conversa: [], empath: [] });
   const [loading, setLoading] = useState(false);
   const selectedBotType = (params.get("bot") as BotType) || "conversa";
@@ -37,6 +37,9 @@ export default function PlanSelection() {
     navigate(`/plan-purchase?planId=${plan.id}&bot=${plan.bot_type}`);
   };
 
+  // Find active subscription for selected bot type
+  const activeSub = activeSubscriptions[selectedBotType];
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -61,20 +64,38 @@ export default function PlanSelection() {
           {loading && Array.from({ length: 3 }).map((_, i) => (
             <Card key={i} className="h-56 animate-pulse" />
           ))}
-          {!loading && currentPlans.map((plan) => (
-            <Card key={plan.id} className="hover:shadow-md transition-all">
-              <CardContent className="p-6 space-y-4">
-                <div>
-                  <h3 className="text-xl font-bold">{plan.name}</h3>
-                  <p className="text-muted-foreground text-sm">{plan.minutes.toLocaleString()} minutes • 30 days</p>
-                </div>
-                <div className="text-3xl font-bold">${plan.price}</div>
-                <Button className="w-full btn-theme-gradient" onClick={() => handleSelect(plan)}>
-                  Select {plan.name}
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+          {!loading && currentPlans.map((plan) => {
+            const isSubscribed = activeSub && activeSub.plan_id === plan.id && activeSub.is_active;
+            return (
+              <Card key={plan.id} className="hover:shadow-md transition-all">
+                <CardContent className="p-6 space-y-4">
+                  <div>
+                    <h3 className="text-xl font-bold">{plan.name}</h3>
+                    <p className="text-muted-foreground text-sm">{plan.minutes.toLocaleString()} minutes • 30 days</p>
+                  </div>
+                  <div className="text-3xl font-bold">${plan.price}</div>
+                  <Button
+                    className="w-full btn-theme-gradient"
+                    onClick={() => handleSelect(plan)}
+                  >
+                    Select {plan.name}
+                  </Button>
+                  {isSubscribed && (
+                    <div className="mt-4">
+                      <Card className="border border-yellow-400 bg-yellow-50">
+                        <CardContent className="p-2 text-center">
+                          <div className="text-sm font-semibold text-yellow-700">You already have an active subscription for this plan.</div>
+                          <div className="mt-1 text-xs text-yellow-700">
+                            Plan: <span className="font-bold">{activeSub.plan?.name}</span> • {activeSub.minutes_left.toLocaleString()} min left • Expires: {new Date(activeSub.expires_at).toLocaleDateString()}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       </div>
     </div>

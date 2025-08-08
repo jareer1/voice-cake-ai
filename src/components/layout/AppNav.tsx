@@ -34,9 +34,9 @@ export default function AppNav() {
             <Button 
               variant="outline" 
               size="sm"
-              onClick={() => navigate('/plan-selection?bot=conversa')}
+              onClick={() => navigate('/dashboard')}
             >
-              See Plans
+              Dashboard
             </Button>
           </div>
 
@@ -69,10 +69,10 @@ export default function AppNav() {
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => navigate('/plan-selection?bot=conversa')}
+                onClick={() => navigate('/dashboard')}
                 className="w-full"
               >
-                See Plans
+                Dashboard
               </Button>
             </div>
           </div>

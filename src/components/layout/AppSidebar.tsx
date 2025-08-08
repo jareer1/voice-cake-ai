@@ -18,7 +18,6 @@ const menuItems = [
   { title: "Agents", url: "/agents", icon: Bot },
   { title: "Usage", url: "/usage", icon: Users },
   { title: "Add-ons", url: "/addons", icon: Mic },
-  { title: "API Keys", url: "/api-keys", icon: KeyRound },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 

@@ -23,7 +23,7 @@ import PlanSelection from "./pages/PlanSelection";
 import PlanPurchase from "./pages/PlanPurchase";
 import UsageDashboard from "./pages/UsageDashboard";
 import AddOnPurchase from "./pages/AddOnPurchase";
-import ApiKeys from "./pages/ApiKeys";
+// import ApiKeys from "./pages/ApiKeys";
 
 const queryClient = new QueryClient();
 
@@ -100,13 +100,13 @@ const App = () => {
                   </AppLayout>
                 </ProtectedRoute>
               } />
-              <Route path="/api-keys" element={
+              {/* <Route path="/api-keys" element={
                 <ProtectedRoute>
                   <AppLayout>
                     <ApiKeys />
                   </AppLayout>
                 </ProtectedRoute>
-              } />
+              } /> */}
               {/* Catch-all */}
               <Route path="*" element={<NotFound />} />
             </Routes>

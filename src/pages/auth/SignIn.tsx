@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,11 +8,13 @@ import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Bot } from "lucide-react";
 import { useAuth } from "../../context/authContext";
+import { useFinance } from "../../context/financeContext";
 import { toast } from "sonner";
 
 export default function SignIn() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { hasActiveSubscription, subscriptionsLoaded, refreshSubscriptions } = useFinance();
   const [formData, setFormData] = useState({
     username: "",
     password: "",
@@ -20,6 +22,16 @@ export default function SignIn() {
   });
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (subscriptionsLoaded) {
+      if (hasActiveSubscription) {
+        navigate("/dashboard", { replace: true });
+      } else {
+        navigate("/plan-selection", { replace: true });
+      }
+    }
+  }, [subscriptionsLoaded, hasActiveSubscription, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
