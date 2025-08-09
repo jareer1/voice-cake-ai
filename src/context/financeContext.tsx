@@ -1,5 +1,6 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, useRef } from "react";
 import api from "@/pages/services/api";
+import { useAuth } from "./authContext";
 
 export type BotType = "conversa" | "empath";
 
@@ -60,6 +61,7 @@ type FinanceContextType = {
   hasActiveSubscription: boolean;
   activeSubscriptions: Partial<Record<BotType, UserSubscription>>;
   refreshSubscriptions: () => Promise<void>;
+  refreshSubscriptionsImmediate: () => Promise<void>;
   subscriptionsLoaded: boolean;
 
   // plans
@@ -93,6 +95,8 @@ const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
 export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeSubscriptions, setActiveSubscriptions] = useState<Partial<Record<BotType, UserSubscription>>>({});
   const [subscriptionsLoaded, setSubscriptionsLoaded] = useState<boolean>(false);
+  const { token } = useAuth();
+  const hasInitialized = useRef(false);
 
   const hasActiveSubscription = useMemo(() => {
     return Boolean(activeSubscriptions.conversa || activeSubscriptions.empath);
@@ -104,23 +108,57 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, []);
 
   const refreshSubscriptions = useCallback(async () => {
+    console.log("FinanceContext: Starting refreshSubscriptions...");
     try {
+      // Check both subscription types using existing endpoints
       const [conversaRes, empathRes] = await Promise.allSettled([
         api.get(`/finance/subscription/conversa`),
         api.get(`/finance/subscription/empath`),
       ]);
 
       const next: Partial<Record<BotType, UserSubscription>> = {};
-      if (conversaRes.status === "fulfilled") next.conversa = conversaRes.value.data as UserSubscription;
-      if (empathRes.status === "fulfilled") next.empath = empathRes.value.data as UserSubscription;
+      
+      // Handle Conversa subscription (single object response)
+      if (conversaRes.status === "fulfilled" && conversaRes.value.data) {
+        const conversaSub = conversaRes.value.data;
+        console.log("FinanceContext: Conversa response:", conversaSub);
+        if (conversaSub.is_active && conversaSub.minutes_left > 0) {
+          next.conversa = conversaSub as UserSubscription;
+          console.log("FinanceContext: Set active Conversa subscription");
+        }
+      } else {
+        console.log("FinanceContext: Conversa response failed or no data:", conversaRes);
+      }
+      
+      // Handle Empath subscription (single object response)
+      if (empathRes.status === "fulfilled" && empathRes.value.data) {
+        const empathSub = empathRes.value.data;
+        console.log("FinanceContext: Empath response:", empathSub);
+        if (empathSub.is_active && empathSub.minutes_left > 0) {
+          next.empath = empathSub as UserSubscription;
+          console.log("FinanceContext: Set active Empath subscription");
+        }
+      } else {
+        console.log("FinanceContext: Empath response failed or no data:", empathRes);
+      }
+
+      console.log("FinanceContext: Final subscriptions state:", next);
       setActiveSubscriptions(next);
     } catch (e) {
-      // ignore
+      console.error("FinanceContext: Error in refreshSubscriptions:", e);
     }
     finally {
+      console.log("FinanceContext: Setting subscriptionsLoaded to true");
       setSubscriptionsLoaded(true);
     }
   }, []);
+
+  // Manual refresh function for immediate use after login
+  const refreshSubscriptionsImmediate = useCallback(async () => {
+    console.log("FinanceContext: Manual refresh requested...");
+    setSubscriptionsLoaded(false);
+    await refreshSubscriptions();
+  }, [refreshSubscriptions]);
 
   const purchasePlan = useCallback(
     async (
@@ -196,15 +234,26 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, []);
 
   useEffect(() => {
-    // Attempt to pre-load subscriptions on mount if authenticated
-    refreshSubscriptions();
-  }, [refreshSubscriptions]);
+    // Refresh when auth token becomes available; if not, mark loaded (public pages)
+    if (token && !hasInitialized.current) {
+      console.log("FinanceContext: Token available, initializing subscriptions...");
+      hasInitialized.current = true;
+      setSubscriptionsLoaded(false);
+      refreshSubscriptions();
+    } else if (!token) {
+      console.log("FinanceContext: No token, clearing subscriptions...");
+      hasInitialized.current = false;
+      setActiveSubscriptions({});
+      setSubscriptionsLoaded(true);
+    }
+  }, [token]);
 
   const value = useMemo<FinanceContextType>(
     () => ({
       hasActiveSubscription,
       activeSubscriptions,
       refreshSubscriptions,
+      refreshSubscriptionsImmediate,
       subscriptionsLoaded,
       listPlans,
       purchasePlan,
@@ -224,6 +273,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       hasActiveSubscription,
       activeSubscriptions,
       refreshSubscriptions,
+      refreshSubscriptionsImmediate,
       subscriptionsLoaded,
       listPlans,
       purchasePlan,

@@ -26,14 +26,24 @@ export async function revolutTestPayment(amountCents: number, currency: string =
 export default function PlanPurchase() {
   const query = useQuery();
   const navigate = useNavigate();
-  const { listPlans, purchasePlan } = useFinance();
+  const { listPlans, purchasePlan, refreshSubscriptions, hasActiveSubscription } = useFinance();
   const [plan, setPlan] = useState<SubscriptionPlan | null>(null);
   const [counterparty, setCounterparty] = useState("");
   const [autoRenew, setAutoRenew] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [hasRedirected, setHasRedirected] = useState(false);
 
   const planId = Number(query.get("planId"));
   const bot = (query.get("bot") as "conversa" | "empath") || "conversa";
+
+  // Redirect if user already has an active subscription (only once)
+  useEffect(() => {
+    if (hasActiveSubscription && !hasRedirected) {
+      console.log("PlanPurchase: User already has active subscription, redirecting to dashboard");
+      setHasRedirected(true);
+      navigate("/dashboard", { replace: true });
+    }
+  }, [hasActiveSubscription, hasRedirected, navigate]);
 
   useEffect(() => {
     const load = async () => {
@@ -52,6 +62,30 @@ export default function PlanPurchase() {
 
   let token = localStorage.getItem("authToken");
 
+  // Show loading while checking subscription status
+  if (hasActiveSubscription === undefined) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-4 text-lg">Checking subscription status...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show redirect message if user already has subscription
+  if (hasActiveSubscription) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-4 text-lg">Redirecting to dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
   const handlePurchase = async () => {
     if (!token) {
       toast.info("Please sign in to complete your purchase.");
@@ -67,17 +101,13 @@ export default function PlanPurchase() {
     setLoading(true);
     try {
       const res = await purchasePlan(plan.id, { counterparty, autoRenew });
-      toast.success("Payment successful. Subscription activated.");
-      if (res.apiKeyRaw) {
-        toast.success("Your API key:");
-        // Display briefly; advise to copy in API Keys page
-      }
-      // Navigate to dashboard (single domain) and normalize host (strip app.)
-      const { protocol, host } = window.location;
-      const [namePart, portPart] = host.split(":");
-      const bareHost = namePart.replace(/^app\./, "");
-      const finalHost = portPart ? `${bareHost}:${portPart}` : bareHost;
-      window.location.href = `${protocol}//${finalHost}${appUrl}`;
+      toast.success("Purchase successful, all set!");
+      
+      // Refresh subscriptions in context to ensure latest state
+      await refreshSubscriptions();
+      
+      // Navigate to dashboard using React Router
+      navigate("/dashboard");
     } catch (e: any) {
       toast.error(e?.message ?? "Payment failed");
     } finally {
