@@ -68,7 +68,8 @@ type FinanceContextType = {
   listPlans: (botType: BotType) => Promise<SubscriptionPlan[]>;
 
   // purchase
-  purchasePlan: (planId: number, opts: { counterparty?: string; autoRenew?: boolean }) => Promise<{ subscription: UserSubscription; apiKeyRaw?: string | null }>;
+  purchasePlan: (planId: number, opts: { counterparty?: string; autoRenew?: boolean }) => Promise<{ subscription: UserSubscription; apiKeyRaw?: string | null; client_secret?: string; payment_intent_id?: string }>;
+  confirmStripePayment: (planId: number, paymentIntentId: string) => Promise<{ subscription: UserSubscription; apiKeyRaw?: string | null }>;
 
   // usage
   getUsage: (botType: BotType) => Promise<UsageMeter>;
@@ -164,15 +165,43 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     async (
       planId: number,
       opts: { counterparty?: string; autoRenew?: boolean } = {}
-    ): Promise<{ subscription: UserSubscription; apiKeyRaw?: string | null }> => {
-      const payload = {
-        counterparty: opts.counterparty ?? "sandbox_counterparty",
-        auto_renew: Boolean(opts.autoRenew),
+    ): Promise<{ subscription: UserSubscription; apiKeyRaw?: string | null; client_secret?: string; payment_intent_id?: string }> => {
+      // Create payment intent first
+      const intentRes = await api.post(`/finance/purchase/${planId}/create-intent`);
+      if (!intentRes.data?.success) {
+        throw new Error("Failed to create payment intent");
+      }
+      
+      const { client_secret, payment_intent_id } = intentRes.data;
+      
+      // Return the client secret for frontend Stripe confirmation
+      // The actual subscription creation happens after Stripe confirms payment
+      return { 
+        subscription: {} as UserSubscription, 
+        apiKeyRaw: null,
+        client_secret,
+        payment_intent_id
       };
-      const { data } = await api.post(`/finance/purchase/${planId}`, payload);
-      const sub = data?.data?.subscription as UserSubscription;
-      const rawKey = data?.data?.api_key as string | undefined;
+    },
+    []
+  );
+
+  const confirmStripePayment = useCallback(
+    async (planId: number, paymentIntentId: string): Promise<{ subscription: UserSubscription; apiKeyRaw?: string | null }> => {
+      const { data } = await api.post(`/finance/purchase/${planId}/confirm`, null, {
+        params: { payment_intent_id: paymentIntentId }
+      });
+      
+      if (!data?.success) {
+        throw new Error(data?.message || "Payment confirmation failed");
+      }
+      
+      const sub = data.data?.subscription as UserSubscription;
+      const rawKey = data.data?.api_key as string | undefined;
+      
+      // Refresh subscriptions after successful purchase
       await refreshSubscriptions();
+      
       return { subscription: sub, apiKeyRaw: rawKey ?? null };
     },
     [refreshSubscriptions]
@@ -257,6 +286,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       subscriptionsLoaded,
       listPlans,
       purchasePlan,
+      confirmStripePayment,
       getUsage,
       meterUsage,
       getApiKey,
@@ -277,6 +307,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       subscriptionsLoaded,
       listPlans,
       purchasePlan,
+      confirmStripePayment,
       getUsage,
       meterUsage,
       getApiKey,
