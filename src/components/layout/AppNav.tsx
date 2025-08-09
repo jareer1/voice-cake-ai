@@ -34,9 +34,9 @@ export default function AppNav() {
             <Button 
               variant="outline" 
               size="sm"
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/auth/signin')}
             >
-              Dashboard
+              Sign In
             </Button>
           </div>
 
@@ -69,10 +69,10 @@ export default function AppNav() {
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => navigate('/dashboard')}
+                onClick={() => navigate('/auth/signin')}
                 className="w-full"
               >
-                Dashboard
+                Sign In
               </Button>
             </div>
           </div>
