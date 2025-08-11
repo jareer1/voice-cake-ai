@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Bot } from "lucide-react";
 import { useAuth } from "../../context/authContext";
 import { useFinance } from "../../context/financeContext";
+import api from "@/pages/services/api";
 import { toast } from "sonner";
 
 export default function SignIn() {
@@ -23,16 +24,6 @@ export default function SignIn() {
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (subscriptionsLoaded) {
-      if (hasActiveSubscription) {
-        navigate("/dashboard", { replace: true });
-      } else {
-        navigate("/plan-selection", { replace: true });
-      }
-    }
-  }, [subscriptionsLoaded, hasActiveSubscription, navigate]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -40,7 +31,6 @@ export default function SignIn() {
     try {
       // Use login from context, get response
       const res: any = await login(formData.username, formData.password);
-      // Only check res if login returns something
       if (res && typeof res === "object" && "success" in res) {
         if (res.success && res.data) {
           localStorage.setItem("authToken", res.data.access_token);
@@ -50,7 +40,50 @@ export default function SignIn() {
           toast.success(res.message || "Login successful", {
             position: "top-right"
           });
-          setTimeout(() => navigate("/dashboard"), 1200); // Delay navigation so toast is visible
+          // After login, fetch subscriptions and navigate accordingly
+          try {
+            // First refresh subscriptions in context
+            await refreshSubscriptions();
+            
+            // Wait a bit for state to update, then check and navigate
+            setTimeout(async () => {
+              const [conversaRes, empathRes] = await Promise.allSettled([
+                api.get("/finance/subscription/conversa"),
+                api.get("/finance/subscription/empath"),
+              ]);
+              
+              let hasActive = false;
+              
+              // Check Conversa subscription (single object response)
+              if (conversaRes.status === "fulfilled" && conversaRes.value.data) {
+                const conversaSub = conversaRes.value.data;
+                console.log("Post-login Conversa subscription:", conversaSub);
+                if (conversaSub.is_active && conversaSub.minutes_left > 0) {
+                  hasActive = true;
+                }
+              }
+              
+              // Check Empath subscription (single object response)
+              if (!hasActive && empathRes.status === "fulfilled" && empathRes.value.data) {
+                const empathSub = empathRes.value.data;
+                console.log("Post-login Empath subscription:", empathSub);
+                if (empathSub.is_active && empathSub.minutes_left > 0) {
+                  hasActive = true;
+                }
+              }
+              
+              console.log("Post-login has active subscription:", hasActive);
+              
+              if (hasActive) {
+                navigate("/dashboard");
+              } else {
+                navigate("/plan-selection");
+              }
+            }, 500);
+          } catch (err) {
+            console.error("Error fetching subscriptions:", err);
+            setTimeout(() => navigate("/plan-selection"), 800);
+          }
         } else {
           toast.error(res.message || "Login failed", {
             position: "top-right"
@@ -58,7 +91,6 @@ export default function SignIn() {
           setError(res.message || "Login failed");
         }
       } else {
-        // fallback: check context
         if (localStorage.getItem("authToken")) {
           toast.success("Login successful", {
             position: "top-right"

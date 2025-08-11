@@ -30,7 +30,13 @@ export default function Landing() {
   };
 
   const handleDashboardClick = () => {
-    navigate('/dashboard');
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      navigate('/dashboard');
+    } else {
+      // No token: try to send to plan-selection, but public can still access test
+      navigate('/plan-selection');
+    }
   };
 
   const features = [

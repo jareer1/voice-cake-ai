@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,9 +10,11 @@ const botTypes: BotType[] = ["conversa", "empath"];
 export default function PlanSelection() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
-  const { listPlans, activeSubscriptions, subscriptionsLoaded } = useFinance();
+  const { listPlans, activeSubscriptions, subscriptionsLoaded, refreshSubscriptions, hasActiveSubscription } = useFinance();
   const [plans, setPlans] = useState<Record<BotType, SubscriptionPlan[]>>({ conversa: [], empath: [] });
   const [loading, setLoading] = useState(false);
+  const [hasRedirected, setHasRedirected] = useState(false);
+  const hasRefreshedRef = useRef(false);
   const selectedBotType = (params.get("bot") as BotType) || "conversa";
 
   useEffect(() => {
@@ -31,6 +33,44 @@ export default function PlanSelection() {
     fetchPlans();
   }, [listPlans]);
 
+  // Refresh subscriptions when component mounts to ensure we have latest state
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    
+    // Only refresh if subscriptions are loaded, not loading plans, and we haven't already refreshed
+    if (subscriptionsLoaded && !loading && !hasRefreshedRef.current) {
+      console.log("PlanSelection: Refreshing subscriptions...");
+      hasRefreshedRef.current = true;
+      
+      // Add a small delay to prevent rapid successive calls
+      timeoutId = setTimeout(() => {
+        refreshSubscriptions()
+          .then(() => {
+            console.log("PlanSelection: Subscriptions refreshed successfully");
+          })
+          .catch((error) => {
+            console.error("PlanSelection: Error refreshing subscriptions:", error);
+          });
+      }, 100);
+    }
+    
+    // Cleanup function to clear timeout if component unmounts
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [subscriptionsLoaded, loading, refreshSubscriptions]);
+
+  // Handle redirect when subscription status changes (only once)
+  useEffect(() => {
+    if (hasActiveSubscription && !hasRedirected) {
+      console.log("PlanSelection: User has active subscription, redirecting to dashboard");
+      setHasRedirected(true);
+      navigate("/dashboard", { replace: true });
+    }
+  }, [hasActiveSubscription, hasRedirected, navigate]);
+
   const currentPlans = useMemo(() => plans[selectedBotType] || [], [plans, selectedBotType]);
 
   const handleSelect = (plan: SubscriptionPlan) => {
@@ -39,6 +79,30 @@ export default function PlanSelection() {
 
   // Find active subscription for selected bot type
   const activeSub = activeSubscriptions[selectedBotType];
+
+  // Show loading state while refreshing subscriptions
+  if (hasActiveSubscription === undefined) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-500 mx-auto"></div>
+          <p className="mt-4 text-lg">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show redirect message if user already has subscription
+  if (hasActiveSubscription) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-500 mx-auto"></div>
+          <p className="mt-4 text-lg">Redirecting to dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
