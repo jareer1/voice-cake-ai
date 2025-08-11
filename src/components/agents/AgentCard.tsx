@@ -19,7 +19,7 @@ export function AgentCard({ agent, onEdit }: AgentCardProps) {
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <Avatar className="w-12 h-12 ring-2 ring-primary/20">
-              <AvatarImage src={agent.avatar} />
+              <AvatarImage src={agent.avatar_url || undefined} />
               <AvatarFallback className="avatar-theme-gradient text-white font-semibold">
                 {agent.name.slice(0, 2).toUpperCase()}
               </AvatarFallback>
@@ -40,27 +40,29 @@ export function AgentCard({ agent, onEdit }: AgentCardProps) {
       </CardHeader>
 
       <CardContent className="py-4 space-y-4">
-        <div className="flex flex-wrap gap-2">
-          {agent.tools.slice(0, 3).map((tool) => (
-            <Badge key={tool} variant="secondary" className="text-xs">
-              {tool}
-            </Badge>
-          ))}
-          {agent.tools.length > 3 && (
-            <Badge variant="outline" className="text-xs">
-              +{agent.tools.length - 3} more
-            </Badge>
-          )}
-        </div>
+        {agent.tools && agent.tools.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {agent.tools.slice(0, 3).map((tool) => (
+              <Badge key={tool} variant="secondary" className="text-xs">
+                {tool}
+              </Badge>
+            ))}
+            {agent.tools.length > 3 && (
+              <Badge variant="outline" className="text-xs">
+                +{agent.tools.length - 3} more
+              </Badge>
+            )}
+          </div>
+        )}
 
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <div className="flex items-center gap-1">
             <Users className="w-4 h-4" />
-            <span>{agent.totalSessions} sessions</span>
+            <span>{agent.total_sessions} sessions</span>
           </div>
           <div className="flex items-center gap-1">
             <Clock className="w-4 h-4" />
-            <span>{agent.lastUsed}</span>
+            <span>{agent.last_used ? new Date(agent.last_used).toLocaleDateString() : 'Never'}</span>
           </div>
         </div>
 
@@ -75,7 +77,7 @@ export function AgentCard({ agent, onEdit }: AgentCardProps) {
           variant="outline"
           size="sm" 
           className="flex-1 gap-2 btn-theme-gradient border-theme-primary hover:border-theme-secondary"
-          onClick={() => navigate(`/agents/${agent.id}/test`)}
+          onClick={() => navigate(`/inference/${agent.id}`)}
         >
           <Play className="w-4 h-4" />
           Test

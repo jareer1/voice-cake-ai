@@ -1,92 +1,43 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { AgentCard } from "@/components/agents/AgentCard";
 import { CreateAgentModal } from "@/components/modals/CreateAgentModal";
-import { Plus, Search, Filter, Grid, List } from "lucide-react";
+import { Plus, Search, Filter, Grid, List, Loader2 } from "lucide-react";
 import { Agent } from "@/types/agent";
-
-// Mock data - in real app this would come from API
-const mockAgents: Agent[] = [
-  {
-    id: "1",
-    name: "Customer Support AI",
-    description: "Handles customer inquiries and support tickets with empathy and efficiency",
-    status: "active",
-    voice: {
-      provider: "elevenlabs",
-      voiceId: "voice_123",
-      settings: { speed: 1.0, stability: 0.8 }
-    },
-    tools: ["Knowledge Base", "Ticket System", "CRM Integration"],
-    personality: {
-      tone: "helpful",
-      style: "professional", 
-      instructions: "Be empathetic and solution-focused"
-    },
-    integrations: { whatsapp: true, voice_calls: true, web: true },
-    analytics: { totalSessions: 2847, avgSessionLength: 3.2, satisfactionScore: 4.8 },
-    totalSessions: 2847,
-    lastUsed: "2 hours ago",
-    createdAt: "2024-01-15",
-    updatedAt: "2024-01-20"
-  },
-  {
-    id: "2",
-    name: "Sales Assistant", 
-    description: "Qualifies leads and schedules appointments with potential customers",
-    status: "active",
-    voice: {
-      provider: "elevenlabs",
-      voiceId: "voice_456",
-      settings: { speed: 1.1, stability: 0.7 }
-    },
-    tools: ["Calendar", "CRM", "Product Catalog"],
-    personality: {
-      tone: "persuasive",
-      style: "friendly",
-      instructions: "Focus on understanding customer needs"
-    },
-    integrations: { whatsapp: true, voice_calls: true, web: false },
-    analytics: { totalSessions: 1204, avgSessionLength: 5.1, satisfactionScore: 4.6 },
-    totalSessions: 1204,
-    lastUsed: "1 day ago",
-    createdAt: "2024-01-10", 
-    updatedAt: "2024-01-18"
-  },
-  {
-    id: "3",
-    name: "HR Onboarding Bot",
-    description: "Guides new employees through the onboarding process and answers HR questions",
-    status: "training",
-    voice: {
-      provider: "elevenlabs",
-      voiceId: "voice_789",
-      settings: { speed: 0.9, stability: 0.9 }
-    },
-    tools: ["Employee Database", "Document Manager", "Training Modules"],
-    personality: {
-      tone: "welcoming",
-      style: "informative", 
-      instructions: "Be patient and thorough in explanations"
-    },
-    integrations: { whatsapp: false, voice_calls: true, web: true },
-    analytics: { totalSessions: 89, avgSessionLength: 7.5, satisfactionScore: 4.9 },
-    totalSessions: 89,
-    lastUsed: "3 days ago",
-    createdAt: "2024-01-08",
-    updatedAt: "2024-01-16"
-  }
-];
+import agentsService from "./services/agents";
+import { toast } from "sonner";
 
 export default function Agents() {
-  const [agents] = useState<Agent[]>(mockAgents);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  // Fetch agents from API
+  useEffect(() => {
+    const fetchAgents = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const agentsData = await agentsService.getAgents();
+        setAgents(agentsData);
+      } catch (err: any) {
+        console.error("Error fetching agents:", err);
+        setError(err.message || "Failed to fetch agents");
+        toast.error("Failed to load agents");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAgents();
+  }, []);
 
   const filteredAgents = agents.filter(agent => {
     const matchesSearch = agent.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -185,11 +136,32 @@ export default function Agents() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold">
-            {filteredAgents.length} Agent{filteredAgents.length !== 1 ? 's' : ''}
+            {loading ? "Loading..." : `${filteredAgents.length} Agent${filteredAgents.length !== 1 ? 's' : ''}`}
           </h2>
         </div>
 
-        {filteredAgents.length === 0 ? (
+        {loading ? (
+          <Card className="p-12 text-center">
+            <div className="flex items-center justify-center space-x-2">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <span className="text-muted-foreground">Loading agents...</span>
+            </div>
+          </Card>
+        ) : error ? (
+          <Card className="p-12 text-center">
+            <div className="text-muted-foreground space-y-2">
+              <p className="text-lg text-destructive">Error loading agents</p>
+              <p>{error}</p>
+              <Button 
+                variant="outline" 
+                onClick={() => window.location.reload()}
+                className="mt-4"
+              >
+                Try Again
+              </Button>
+            </div>
+          </Card>
+        ) : filteredAgents.length === 0 ? (
           <Card className="p-12 text-center">
             <div className="text-muted-foreground space-y-2">
               <p className="text-lg">No agents found</p>
