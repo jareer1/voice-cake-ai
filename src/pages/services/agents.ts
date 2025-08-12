@@ -5,7 +5,7 @@ export const agentsService = {
   // Get all agents
   getAgents: async (): Promise<Agent[]> => {
     try {
-      const response = await api.get("/agents");
+      const response = await api.get("/agents/");
       return response.data;
     } catch (error) {
       console.error("Error fetching agents:", error);
@@ -27,7 +27,7 @@ export const agentsService = {
   // Create new agent
   createAgent: async (agentData: Partial<Agent>): Promise<Agent> => {
     try {
-      const response = await api.post("/agents", agentData);
+      const response = await api.post("/agents/", agentData);
       return response.data;
     } catch (error) {
       console.error("Error creating agent:", error);
