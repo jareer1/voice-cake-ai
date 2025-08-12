@@ -19,7 +19,7 @@ export const config = {
   // WebSocket Configuration
   websocket: {
     baseURL: import.meta.env.VITE_WS_BASE_URL || "wss://voicecake-ame5ascacvgrgde6.canadacentral-01.azurewebsites.net",
-    humeEndpoint: import.meta.env.VITE_HUME_WS_ENDPOINT || "/api/v1/hume/ws/inference",
+    humeEndpoint: import.meta.env.VITE_HUME_WS_ENDPOINT || "/api/v1/hume/wss/inference",
   },
   
   // Debug logging
