@@ -2,17 +2,65 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bot, Play, Edit, MoreVertical, Users, Clock } from "lucide-react";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
+import { Bot, Play, Edit, MoreVertical, Users, Clock, Trash2, Share2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Agent } from "@/types/agent";
+import { toast } from "sonner";
 
 interface AgentCardProps {
   agent: Agent;
   onEdit?: (agent: Agent) => void;
+  onDelete?: (agent: Agent) => void;
 }
 
-export function AgentCard({ agent, onEdit }: AgentCardProps) {
+export function AgentCard({ agent, onEdit, onDelete }: AgentCardProps) {
   const navigate = useNavigate();
+
+  const handleShare = async () => {
+    const shareUrl = `${window.location.origin}/share/${agent.id}`;
+    
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `Chat with ${agent.name}`,
+          text: `Try out ${agent.name} - an AI voice agent: ${agent.description}`,
+          url: shareUrl,
+        });
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success("Share link copied to clipboard!");
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+      // Fallback to clipboard
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success("Share link copied to clipboard!");
+      } catch (clipboardError) {
+        console.error('Error copying to clipboard:', clipboardError);
+        toast.error("Failed to copy share link");
+      }
+    }
+  };
+
+  const handleCopyLink = async () => {
+    const shareUrl = `${window.location.origin}/share/${agent.id}`;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("Share link copied to clipboard!");
+    } catch (error) {
+      console.error('Error copying to clipboard:', error);
+      toast.error("Failed to copy share link");
+    }
+  };
+
   return (
     <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-gradient-card border-border/50">
       <CardHeader className="pb-3">
@@ -33,9 +81,35 @@ export function AgentCard({ agent, onEdit }: AgentCardProps) {
               </p>
             </div>
           </div>
-          <Button variant="ghost" size="icon-sm">
-            <MoreVertical className="w-4 h-4" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon-sm">
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onEdit?.(agent)}>
+                <Edit className="w-4 h-4 mr-2" />
+                Edit Agent
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleShare}>
+                <Share2 className="w-4 h-4 mr-2" />
+                Share Agent
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleCopyLink}>
+                <Share2 className="w-4 h-4 mr-2" />
+                Copy Link
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={() => onDelete?.(agent)}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete Agent
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </CardHeader>
 
@@ -66,9 +140,15 @@ export function AgentCard({ agent, onEdit }: AgentCardProps) {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${agent.status === 'active' ? 'bg-success' : 'bg-muted-foreground'}`} />
-          <span className="text-sm capitalize">{agent.status}</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${agent.status === 'active' ? 'bg-success' : 'bg-muted-foreground'}`} />
+            <span className="text-sm capitalize">{agent.status}</span>
+          </div>
+          <Badge variant="outline" className="text-xs">
+            <Share2 className="w-3 h-3 mr-1" />
+            Shareable
+          </Badge>
         </div>
       </CardContent>
 
@@ -86,10 +166,10 @@ export function AgentCard({ agent, onEdit }: AgentCardProps) {
           variant="outline" 
           size="sm" 
           className="flex-1 gap-2"
-          onClick={() => onEdit?.(agent)}
+          onClick={handleShare}
         >
-          <Edit className="w-4 h-4" />
-          Edit
+          <Share2 className="w-4 h-4" />
+          Share
         </Button>
       </CardFooter>
     </Card>

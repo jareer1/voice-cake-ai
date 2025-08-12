@@ -5,9 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { AgentCard } from "@/components/agents/AgentCard";
 import { CreateAgentModal } from "@/components/modals/CreateAgentModal";
+import { EditAgentModal } from "@/components/modals/EditAgentModal";
 import { Plus, Search, Filter, Grid, List, Loader2 } from "lucide-react";
 import { Agent } from "@/types/agent";
 import agentsService from "./services/agents";
+import { agentAPI } from "./services/api";
 import { toast } from "sonner";
 
 export default function Agents() {
@@ -18,6 +20,8 @@ export default function Agents() {
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
 
   // Fetch agents from API
   useEffect(() => {
@@ -52,6 +56,34 @@ export default function Agents() {
     { value: "inactive", label: "Inactive", count: agents.filter(a => a.status === "inactive").length },
     { value: "training", label: "Training", count: agents.filter(a => a.status === "training").length },
   ];
+
+  const handleEditAgent = (agent: Agent) => {
+    setSelectedAgent(agent);
+    setIsEditModalOpen(true);
+  };
+
+  const handleDeleteAgent = async (agent: Agent) => {
+    if (window.confirm(`Are you sure you want to delete "${agent.name}"? This action cannot be undone.`)) {
+      try {
+        await agentAPI.deleteAgent(agent.id.toString());
+        toast.success("Agent deleted successfully!");
+        // Refresh the agents list
+        const updatedAgents = agents.filter(a => a.id !== agent.id);
+        setAgents(updatedAgents);
+      } catch (error: any) {
+        console.error("Error deleting agent:", error);
+        const errorMessage = error.response?.data?.message || error.message || "Failed to delete agent";
+        toast.error(errorMessage);
+      }
+    }
+  };
+
+  const handleAgentUpdate = (updatedAgent: Agent) => {
+    // Update the agent in the local state
+    setAgents(prev => prev.map(agent => 
+      agent.id === updatedAgent.id ? updatedAgent : agent
+    ));
+  };
 
   return (
     <div className="space-y-6 animate-enter">
@@ -177,7 +209,8 @@ export default function Agents() {
               <div key={agent.id} className="animate-fade-up" style={{ animationDelay: `${index * 0.1}s` }}>
                 <AgentCard
                   agent={agent}
-                  onEdit={(agent) => console.log('Editing agent:', agent.name)}
+                  onEdit={handleEditAgent}
+                  onDelete={handleDeleteAgent}
                 />
               </div>
             ))}
@@ -192,7 +225,19 @@ export default function Agents() {
         onSubmit={(data) => {
           console.log('Creating agent:', data);
           setIsCreateModalOpen(false);
+          // Add the new agent to the list
+          setAgents(prev => [...prev, data]);
         }}
+      />
+      
+      <EditAgentModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setSelectedAgent(null);
+        }}
+        onSubmit={handleAgentUpdate}
+        agent={selectedAgent}
       />
     </div>
   );

@@ -25,4 +25,48 @@ api.interceptors.request.use(
   }
 ); 
 
+// Agent API functions
+export const agentAPI = {
+  createAgent: async (agentData: {
+    name: string;
+    voice_provider: string;
+    voice_id: string;
+    description: string;
+    custom_instructions: string;
+    model_provider: string;
+    model_resource: string;
+  }) => {
+    const response = await api.post('/agents/', agentData);
+    return response.data;
+  },
+  
+  getAgents: async () => {
+    const response = await api.get('/agents/');
+    return response.data;
+  },
+  
+  getAgent: async (id: string) => {
+    const response = await api.get(`/agents/${id}`);
+    return response.data;
+  },
+  
+  updateAgent: async (id: string, agentData: {
+    name: string;
+    voice_provider: string;
+    voice_id: string;
+    description: string;
+    custom_instructions: string;
+    model_provider: string;
+    model_resource: string;
+  }) => {
+    const response = await api.put(`/agents/${id}`, agentData);
+    return response.data;
+  },
+  
+  deleteAgent: async (id: string) => {
+    const response = await api.delete(`/agents/${id}`);
+    return response.data;
+  }
+};
+
 export default api; 
