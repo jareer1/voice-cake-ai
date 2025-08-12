@@ -29,9 +29,8 @@ const useHumeInference = ({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   
   // Audio Management
-  const audioQueueRef = useRef<{ url: string; type: string; blob: Blob; mimeType: string }[]>([]);
+  const audioQueueRef = useRef<{ type: string; blob: Blob; mimeType: string }[]>([]);
   const isPlayingRef = useRef(false);
-  const urlsToCleanupRef = useRef(new Set<string>());
   const shouldInterruptRef = useRef(false);
   
   // Real-time audio streaming for small chunks
@@ -50,11 +49,10 @@ const useHumeInference = ({
   const speechFramesRef = useRef(0);
   const silenceFramesRef = useRef(0);
 
-  // Initialize high-quality audio context with low latency
+  // Initialize high-quality audio context with browser-optimized settings
   const initializeAudioContext = useCallback(async () => {
     if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({
-        sampleRate: 48000,
         latencyHint: 'interactive'
       });
       
@@ -91,16 +89,6 @@ const useHumeInference = ({
     // Clear the queue
     audioQueueRef.current = [];
     isPlayingRef.current = false;
-    
-    // Clean up URLs
-    urlsToCleanupRef.current.forEach(url => {
-      try {
-        URL.revokeObjectURL(url);
-      } catch (error) {
-        console.warn('Error revoking URL:', error);
-      }
-    });
-    urlsToCleanupRef.current.clear();
     
     console.log('✅ Immediate interruption completed');
   }, []);
@@ -139,7 +127,7 @@ const useHumeInference = ({
         currentAudioSourceRef.current = null;
         isPlayingRef.current = false;
         shouldInterruptRef.current = false;
-        setTimeout(playNext, 25);
+        setTimeout(playNext, 1);
       };
       
       source.start(0);
@@ -157,7 +145,7 @@ const useHumeInference = ({
     }
   }, [initializeAudioContext, onAudioReceived]);
 
-  // Queue processing
+  // Queue processing - using Blob directly
   const playNext = useCallback(async () => {
     if (shouldInterruptRef.current) {
       console.log('🚫 Queue processing stopped due to interruption');
@@ -175,29 +163,23 @@ const useHumeInference = ({
     isPlayingRef.current = true;
 
     try {
-      const response = await fetch(item.url);
-      
       if (shouldInterruptRef.current) {
-        console.log('🚫 Interruption detected after fetch, aborting');
+        console.log('🚫 Interruption detected, aborting playback');
         isPlayingRef.current = false;
         return;
       }
       
-      const audioBlob = await response.blob();
-      const properBlob = new Blob([audioBlob], { 
-        type: item.mimeType || 'audio/wav' 
-      });
-      
-      await playAudioWithHighQuality(properBlob);
+      // Use the Blob directly instead of re-fetching from URL
+      await playAudioWithHighQuality(item.blob);
     } catch (error) {
       console.warn('Enhanced audio failed:', error);
       isPlayingRef.current = false;
       shouldInterruptRef.current = false;
-      setTimeout(playNext, 25);
+      setTimeout(playNext, 1);
     }
   }, [playAudioWithHighQuality]);
 
-  // Add audio to queue
+  // Add audio to queue - using Blob directly
   const addToQueue = useCallback((audioBlob: Blob, type = 'audio', mimeType = 'audio/wav') => {
     if (shouldInterruptRef.current) {
       console.log('🚫 Skipping queue addition due to interruption');
@@ -206,22 +188,18 @@ const useHumeInference = ({
     
     console.log(`🎵 Adding to queue: type=${type}, size=${audioBlob.size} bytes, mime=${mimeType}`);
     
-    const url = URL.createObjectURL(audioBlob);
-    urlsToCleanupRef.current.add(url);
-    
-    audioQueueRef.current.push({ url, type, blob: audioBlob, mimeType });
+    audioQueueRef.current.push({ type, blob: audioBlob, mimeType });
     
     if (!isPlayingRef.current) {
       playNext();
     }
   }, [playNext]);
 
-  // Enhanced speech detection with better sensitivity and low latency
+  // Enhanced speech detection with browser-optimized settings
   const startSpeechDetection = useCallback((stream: MediaStream) => {
     try {
       if (!speechContextRef.current || speechContextRef.current.state === 'closed') {
         speechContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({
-          sampleRate: 48000,
           latencyHint: 'interactive'
         });
       }
@@ -450,10 +428,9 @@ const useHumeInference = ({
       setInferenceState("CONNECTING");
       setIsLoading(true);
       
-      // Get microphone access
+      // Get microphone access with browser-optimized settings
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
-          sampleRate: 48000,
           channelCount: 1,
           echoCancellation: true,
           noiseSuppression: true,
@@ -569,7 +546,7 @@ const useHumeInference = ({
         }
       };
 
-      mediaRecorder.start(50); // 50ms chunks for lower latency and better real-time performance
+      mediaRecorder.start(150); // 150ms chunks to reduce decode overhead and prevent crackles
       setInferenceState("ACTIVE");
       setIsLoading(false);
       toast.success("Inference started successfully!");
