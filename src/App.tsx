@@ -23,6 +23,8 @@ import PlanSelection from "./pages/PlanSelection";
 import PlanPurchase from "./pages/PlanPurchase";
 import UsageDashboard from "./pages/UsageDashboard";
 import AddOnPurchase from "./pages/AddOnPurchase";
+import Inference from "./pages/Inference";
+import PublicInference from "./pages/PublicInference";
 // import ApiKeys from "./pages/ApiKeys";
 
 const queryClient = new QueryClient();
@@ -45,6 +47,8 @@ const App = () => {
               <Route path="/plan-purchase" element={<PlanPurchase />} />
               {/* Public routes */}
               <Route path="/test" element={<PublicTest />} />
+              {/* Public shared agent inference */}
+              <Route path="/share/:agentId" element={<PublicInference />} />
               {/* Auth routes */}
               <Route path="/auth/signin" element={<SignIn />} />
               <Route path="/auth/signup" element={<SignUp />} />
@@ -97,6 +101,20 @@ const App = () => {
                 <ProtectedRoute>
                   <AppLayout>
                     <AddOnPurchase />
+                  </AppLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/inference" element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Inference />
+                  </AppLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/inference/:agentId" element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Inference />
                   </AppLayout>
                 </ProtectedRoute>
               } />

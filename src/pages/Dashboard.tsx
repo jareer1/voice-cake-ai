@@ -4,65 +4,44 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AgentCard } from "@/components/agents/AgentCard";
 import { AgentTestInterface } from "@/components/agents/AgentTestInterface";
 import { CreateAgentModal } from "@/components/modals/CreateAgentModal";
-import { Plus, Bot, Users, Clock, TrendingUp } from "lucide-react";
+import { EditAgentModal } from "@/components/modals/EditAgentModal";
+import { Plus, Bot, Users, Clock, TrendingUp, Loader2 } from "lucide-react";
 import { Agent } from "@/types/agent";
 import { useFinance } from "@/context/financeContext";
+import { agentAPI } from "./services/api";
+import { toast } from "sonner";
 
-// Mock data
-const mockAgents: Agent[] = [
-  {
-    id: "1",
-    name: "Customer Support AI",
-    description: "Handles customer inquiries and support tickets with empathy and efficiency",
-    status: "active",
-    voice: {
-      provider: "elevenlabs",
-      voiceId: "voice_123",
-      settings: { speed: 1.0, stability: 0.8 }
-    },
-    tools: ["Knowledge Base", "Ticket System", "CRM Integration"],
-    personality: {
-      tone: "helpful",
-      style: "professional",
-      instructions: "Be empathetic and solution-focused"
-    },
-    integrations: { whatsapp: true, voice_calls: true, web: true },
-    analytics: { totalSessions: 2847, avgSessionLength: 3.2, satisfactionScore: 4.8 },
-    totalSessions: 2847,
-    lastUsed: "2 hours ago",
-    createdAt: "2024-01-15",
-    updatedAt: "2024-01-20"
-  },
-  {
-    id: "2", 
-    name: "Sales Assistant",
-    description: "Qualifies leads and schedules appointments with potential customers",
-    status: "active",
-    voice: {
-      provider: "elevenlabs",
-      voiceId: "voice_456",
-      settings: { speed: 1.1, stability: 0.7 }
-    },
-    tools: ["Calendar", "CRM", "Product Catalog"],
-    personality: {
-      tone: "persuasive",
-      style: "friendly",
-      instructions: "Focus on understanding customer needs"
-    },
-    integrations: { whatsapp: true, voice_calls: true, web: false },
-    analytics: { totalSessions: 1204, avgSessionLength: 5.1, satisfactionScore: 4.6 },
-    totalSessions: 1204,
-    lastUsed: "1 day ago",
-    createdAt: "2024-01-10",
-    updatedAt: "2024-01-18"
-  }
-];
+
 
 export default function Dashboard() {
-  const [agents] = useState<Agent[]>(mockAgents);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [testingAgent, setTestingAgent] = useState<Agent | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const { activeSubscriptions, refreshSubscriptions } = useFinance();
+
+  // Fetch agents from API
+  useEffect(() => {
+    const fetchAgents = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const agentsData = await agentAPI.getAgents();
+        setAgents(agentsData);
+      } catch (err: any) {
+        console.error("Error fetching agents:", err);
+        setError(err.message || "Failed to fetch agents");
+        toast.error("Failed to load agents");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAgents();
+  }, []);
 
   useEffect(() => {
     refreshSubscriptions();
@@ -71,9 +50,9 @@ export default function Dashboard() {
   const stats = [
     {
       title: "Total Agents",
-      value: agents.length.toString(),
+      value: loading ? "..." : agents.length.toString(),
       icon: Bot,
-      trend: "+2 this week"
+      trend: loading ? "" : `${agents.length} total`
     },
     {
       title: "Active Sessions",
@@ -94,6 +73,34 @@ export default function Dashboard() {
       trend: "+0.2 from last month"
     }
   ];
+
+  const handleEditAgent = (agent: Agent) => {
+    setSelectedAgent(agent);
+    setIsEditModalOpen(true);
+  };
+
+  const handleDeleteAgent = async (agent: Agent) => {
+    if (window.confirm(`Are you sure you want to delete "${agent.name}"? This action cannot be undone.`)) {
+      try {
+        await agentAPI.deleteAgent(agent.id.toString());
+        toast.success("Agent deleted successfully!");
+        // Refresh the agents list
+        const updatedAgents = agents.filter(a => a.id !== agent.id);
+        setAgents(updatedAgents);
+      } catch (error: any) {
+        console.error("Error deleting agent:", error);
+        const errorMessage = error.response?.data?.message || error.message || "Failed to delete agent";
+        toast.error(errorMessage);
+      }
+    }
+  };
+
+  const handleAgentUpdate = (updatedAgent: Agent) => {
+    // Update the agent in the local state
+    setAgents(prev => prev.map(agent => 
+      agent.id === updatedAgent.id ? updatedAgent : agent
+    ));
+  };
 
   return (
     <div className="space-y-6 animate-enter">
@@ -165,16 +172,47 @@ export default function Dashboard() {
           <Button variant="outline" size="sm">View All</Button>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {agents.map((agent, index) => (
-            <div key={agent.id} className="animate-fade-up" style={{ animationDelay: `${index * 0.1}s` }}>
-              <AgentCard 
-                agent={agent}
-                onEdit={(agent) => console.log('Editing agent:', agent.name)}
-              />
+        {loading ? (
+          <Card className="p-12 text-center">
+            <div className="flex items-center justify-center space-x-2">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <span className="text-muted-foreground">Loading agents...</span>
             </div>
-          ))}
-        </div>
+          </Card>
+        ) : error ? (
+          <Card className="p-12 text-center">
+            <div className="text-muted-foreground space-y-2">
+              <p className="text-lg text-destructive">Error loading agents</p>
+              <p>{error}</p>
+              <Button 
+                variant="outline" 
+                onClick={() => window.location.reload()}
+                className="mt-4"
+              >
+                Try Again
+              </Button>
+            </div>
+          </Card>
+        ) : agents.length === 0 ? (
+          <Card className="p-12 text-center">
+            <div className="text-muted-foreground space-y-2">
+              <p className="text-lg">No agents found</p>
+              <p>Create your first agent to get started</p>
+            </div>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            {agents.map((agent, index) => (
+              <div key={agent.id} className="animate-fade-up" style={{ animationDelay: `${index * 0.1}s` }}>
+                <AgentCard 
+                  agent={agent}
+                  onEdit={handleEditAgent}
+                  onDelete={handleDeleteAgent}
+                />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Modals */}
@@ -184,7 +222,19 @@ export default function Dashboard() {
         onSubmit={(data) => {
           console.log('Creating agent:', data);
           setIsCreateModalOpen(false);
+          // Add the new agent to the list
+          setAgents(prev => [...prev, data]);
         }}
+      />
+      
+      <EditAgentModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setSelectedAgent(null);
+        }}
+        onSubmit={handleAgentUpdate}
+        agent={selectedAgent}
       />
 
       {testingAgent && (

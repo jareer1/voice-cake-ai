@@ -139,7 +139,7 @@ const useHumeInference = ({
         currentAudioSourceRef.current = null;
         isPlayingRef.current = false;
         shouldInterruptRef.current = false;
-        setTimeout(playNext, 50);
+        setTimeout(playNext, 25);
       };
       
       source.start(0);
@@ -193,7 +193,7 @@ const useHumeInference = ({
       console.warn('Enhanced audio failed:', error);
       isPlayingRef.current = false;
       shouldInterruptRef.current = false;
-      setTimeout(playNext, 50);
+      setTimeout(playNext, 25);
     }
   }, [playAudioWithHighQuality]);
 
@@ -249,7 +249,7 @@ const useHumeInference = ({
         const rms = Math.sqrt(sum / bufferLength);
         
         // Enhanced speech detection threshold - increased sensitivity to avoid background noise
-        if (rms > 25 && !isUserSpeakingRef.current) { // Increased threshold to avoid background noise
+        if (rms > 30 && !isUserSpeakingRef.current) { // Increased threshold to avoid background noise
           speechFramesRef.current++;
           silenceFramesRef.current = 0;
           

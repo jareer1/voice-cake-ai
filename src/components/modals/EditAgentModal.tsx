@@ -1,21 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
-import { X, Plus, Mic, Loader2 } from "lucide-react";
+import { X, Save, Mic, Loader2 } from "lucide-react";
 import { agentAPI } from "@/pages/services/api";
 import { toast } from "sonner";
+import { Agent } from "@/types/agent";
 
-interface CreateAgentModalProps {
+interface EditAgentModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (agentData: any) => void;
+  agent: Agent | null;
 }
-
-
 
 const voiceOptions = [
   { id: "Lee - Scott", name: "Lee Scott", provider: "elevenlabs" },
@@ -74,7 +74,7 @@ const groupedModels = modelOptions.reduce((acc, model) => {
   return acc;
 }, {} as Record<string, typeof modelOptions>);
 
-export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModalProps) {
+export function EditAgentModal({ isOpen, onClose, onSubmit, agent }: EditAgentModalProps) {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -85,8 +85,24 @@ export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModal
   });
   const [isLoading, setIsLoading] = useState(false);
 
+  // Populate form when agent data is available
+  useEffect(() => {
+    if (agent) {
+      setFormData({
+        name: agent.name || "",
+        description: agent.description || "",
+        voice: agent.voice?.voiceId || "",
+        model_provider: agent.voice?.provider || "",
+        model_resource: agent.voice?.voiceId || "",
+        instructions: agent.personality?.instructions || ""
+      });
+    }
+  }, [agent]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!agent) return;
     
     // Validate required fields
     if (!formData.name || !formData.description || !formData.voice || !formData.model_resource) {
@@ -108,29 +124,27 @@ export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModal
         model_resource: formData.model_resource
       };
 
-      const response = await agentAPI.createAgent(agentData);
-      toast.success("Agent created successfully!");
+      const response = await agentAPI.updateAgent(agent.id.toString(), agentData);
+      toast.success("Agent updated successfully!");
       onSubmit(response);
       onClose();
     } catch (error: any) {
-      console.error("Error creating agent:", error);
-      const errorMessage = error.response?.data?.message || error.message || "Failed to create agent";
+      console.error("Error updating agent:", error);
+      const errorMessage = error.response?.data?.message || error.message || "Failed to update agent";
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
-
-
-  if (!isOpen) return null;
+  if (!isOpen || !agent) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-scale-in">
         <CardHeader className="border-b border-border">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-2xl">Create New Agent</CardTitle>
+            <CardTitle className="text-2xl">Edit Agent</CardTitle>
             <Button variant="ghost" size="icon" onClick={onClose}>
               <X className="w-5 h-5" />
             </Button>
@@ -171,60 +185,58 @@ export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModal
             <div className="space-y-4">
               <h3 className="font-semibold text-lg">Voice & Personality</h3>
               
-                             <div className="space-y-2">
-                 <Label>Voice</Label>
-                 <Select value={formData.voice} onValueChange={(value) => setFormData(prev => ({ ...prev, voice: value }))}>
-                   <SelectTrigger>
-                     <SelectValue placeholder="Select a voice" />
-                   </SelectTrigger>
-                   <SelectContent>
-                     {voiceOptions.map((voice) => (
-                       <SelectItem key={voice.id} value={voice.id}>
-                         <div className="flex items-center gap-2">
-                           <Mic className="w-4 h-4" />
-                           {voice.name}
-                         </div>
-                       </SelectItem>
-                     ))}
-                   </SelectContent>
-                 </Select>
-               </div>
+              <div className="space-y-2">
+                <Label>Voice</Label>
+                <Select value={formData.voice} onValueChange={(value) => setFormData(prev => ({ ...prev, voice: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a voice" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {voiceOptions.map((voice) => (
+                      <SelectItem key={voice.id} value={voice.id}>
+                        <div className="flex items-center gap-2">
+                          <Mic className="w-4 h-4" />
+                          {voice.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-                               <div className="space-y-2">
-                  <Label>AI Model</Label>
-                  <Select 
-                    value={formData.model_resource} 
-                    onValueChange={(value) => {
-                      const selectedModel = modelOptions.find(model => model.simpleName === value);
-                      setFormData(prev => ({ 
-                        ...prev, 
-                        model_provider: selectedModel?.provider || "",
-                        model_resource: value 
-                      }));
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select an AI model" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(groupedModels).map(([provider, models]) => (
-                        <SelectGroup key={provider}>
-                          <SelectLabel>{provider.replace('_', ' ')}</SelectLabel>
-                          {models.map((model) => (
-                            <SelectItem key={model.simpleName} value={model.simpleName}>
-                              <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full bg-primary" />
-                                {model.displayName}
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-              
+              <div className="space-y-2">
+                <Label>AI Model</Label>
+                <Select 
+                  value={formData.model_resource} 
+                  onValueChange={(value) => {
+                    const selectedModel = modelOptions.find(model => model.simpleName === value);
+                    setFormData(prev => ({ 
+                      ...prev, 
+                      model_provider: selectedModel?.provider || "",
+                      model_resource: value 
+                    }));
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select an AI model" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(groupedModels).map(([provider, models]) => (
+                      <SelectGroup key={provider}>
+                        <SelectLabel>{provider.replace('_', ' ')}</SelectLabel>
+                        {models.map((model) => (
+                          <SelectItem key={model.simpleName} value={model.simpleName}>
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-primary" />
+                              {model.displayName}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
               <div className="space-y-2">
                 <Label htmlFor="instructions">Custom Instructions</Label>
@@ -238,41 +250,40 @@ export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModal
               </div>
             </div>
 
-            
-
-                         {/* Actions */}
-             <div className="flex gap-3 pt-4 border-t border-border">
-               <Button 
-                 type="button" 
-                 variant="outline" 
-                 onClick={onClose} 
-                 className="flex-1"
-                 disabled={isLoading}
-               >
-                 Cancel
-               </Button>
-               <Button 
-                 type="submit" 
-                 variant="outline" 
-                 className="flex-1 btn-theme-gradient border-theme-primary hover:border-theme-secondary"
-                 disabled={isLoading}
-               >
-                 {isLoading ? (
-                   <>
-                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                     Creating...
-                   </>
-                 ) : (
-                   <>
-                     <Plus className="w-4 h-4 mr-2" />
-                     Create Agent
-                   </>
-                 )}
-               </Button>
-             </div>
+            {/* Actions */}
+            <div className="flex gap-3 pt-4 border-t border-border">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={onClose} 
+                className="flex-1"
+                disabled={isLoading}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                variant="outline" 
+                className="flex-1 btn-theme-gradient border-theme-primary hover:border-theme-secondary"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Update Agent
+                  </>
+                )}
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>
     </div>
   );
 }
+
