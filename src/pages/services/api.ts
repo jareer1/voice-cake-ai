@@ -69,4 +69,20 @@ export const agentAPI = {
   }
 };
 
+// Auth API functions
+export const authAPI = {
+  requestPasswordReset: async (email: string) => {
+    const response = await api.post('/auth/forgot-password', { email });
+    return response.data;
+  },
+  
+  resetPassword: async (token: string, newPassword: string) => {
+    const response = await api.post('/auth/reset-password', { 
+      token, 
+      new_password: newPassword 
+    });
+    return response.data;
+  }
+};
+
 export default api; 

@@ -4,12 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bot, Check, Eye, EyeOff } from "lucide-react";
+import { Bot, Check, Eye, EyeOff, Loader2 } from "lucide-react";
+import { useAuth } from "@/context/authContext";
+import { toast } from "sonner";
 
 export default function ResetPassword() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
+  const { resetPassword } = useAuth();
   
   const [formData, setFormData] = useState({
     password: "",
@@ -19,23 +22,37 @@ export default function ResetPassword() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords don't match!");
+      toast.error("Passwords don't match!");
       return;
     }
     
-    // Handle password reset logic here
-    console.log("Reset password with token:", token, formData);
-    setIsSubmitted(true);
+    if (!token) {
+      toast.error("Invalid reset token!");
+      return;
+    }
     
-    // Redirect to sign in after 3 seconds
-    setTimeout(() => {
-      navigate("/auth/signin");
-    }, 3000);
+    setIsLoading(true);
+    
+    try {
+      await resetPassword(token, formData.password);
+      setIsSubmitted(true);
+      toast.success("Password reset successfully!");
+      
+      // Redirect to sign in after 3 seconds
+      setTimeout(() => {
+        navigate("/auth/signin");
+      }, 3000);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to reset password");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -156,11 +173,13 @@ export default function ResetPassword() {
                       placeholder="Enter new password"
                       required
                       minLength={8}
+                      disabled={isLoading}
                     />
                     <button
                       type="button"
                       className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                       onClick={() => setShowPassword(!showPassword)}
+                      disabled={isLoading}
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -178,11 +197,13 @@ export default function ResetPassword() {
                       placeholder="Confirm new password"
                       required
                       minLength={8}
+                      disabled={isLoading}
                     />
                     <button
                       type="button"
                       className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      disabled={isLoading}
                     >
                       {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -199,8 +220,19 @@ export default function ResetPassword() {
                   </ul>
                 </div>
 
-                <Button type="submit" className="w-full btn-theme-gradient">
-                  Update Password
+                <Button 
+                  type="submit" 
+                  className="w-full btn-theme-gradient"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Updating Password...
+                    </>
+                  ) : (
+                    "Update Password"
+                  )}
                 </Button>
               </form>
             </CardContent>
