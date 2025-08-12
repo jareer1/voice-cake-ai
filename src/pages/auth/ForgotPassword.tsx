@@ -4,17 +4,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bot, ArrowLeft, Mail } from "lucide-react";
+import { Bot, ArrowLeft, Mail, Loader2 } from "lucide-react";
+import { useAuth } from "@/context/authContext";
+import { toast } from "sonner";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { requestPasswordReset } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle password reset logic here
-    console.log("Password reset for:", email);
-    setIsSubmitted(true);
+    setIsLoading(true);
+    
+    try {
+      await requestPasswordReset(email);
+      setIsSubmitted(true);
+      toast.success("Password reset email sent successfully!");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to send password reset email");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (isSubmitted) {
@@ -139,11 +151,23 @@ export default function ForgotPassword() {
                     className="mt-1"
                     placeholder="Enter your email address"
                     required
+                    disabled={isLoading}
                   />
                 </div>
 
-                <Button type="submit" className="w-full btn-theme-gradient">
-                  Send Reset Link
+                <Button 
+                  type="submit" 
+                  className="w-full btn-theme-gradient"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    "Send Reset Link"
+                  )}
                 </Button>
               </form>
 
