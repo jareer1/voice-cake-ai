@@ -4,8 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
-import { X, Save, Mic, Loader2 } from "lucide-react";
+import { X, Save, Mic, Loader2, MessageSquare } from "lucide-react";
 import { agentAPI } from "@/pages/services/api";
 import { toast } from "sonner";
 import { Agent } from "@/types/agent";
@@ -85,6 +86,23 @@ export function EditAgentModal({ isOpen, onClose, onSubmit, agent }: EditAgentMo
   });
   const [isLoading, setIsLoading] = useState(false);
 
+  // Helper function to get agent type display info
+  const getAgentTypeInfo = () => {
+    if (!agent) return { label: 'Unknown', icon: Mic };
+    const agentType = agent.agent_type || agent.type || 'SPEECH';
+    if (agentType === 'TEXT') {
+      return {
+        label: 'Text-To-Speech',
+        icon: MessageSquare
+      };
+    } else {
+      return {
+        label: 'Speech-To-Speech',
+        icon: Mic
+      };
+    }
+  };
+
   // Populate form when agent data is available
   useEffect(() => {
     if (agent) {
@@ -121,7 +139,8 @@ export function EditAgentModal({ isOpen, onClose, onSubmit, agent }: EditAgentMo
         description: formData.description,
         custom_instructions: formData.instructions,
         model_provider: formData.model_provider,
-        model_resource: formData.model_resource
+        model_resource: formData.model_resource,
+        agent_type: agent.agent_type || agent.type || 'SPEECH'
       };
 
       const response = await agentAPI.updateAgent(agent.id.toString(), agentData);
@@ -156,6 +175,26 @@ export function EditAgentModal({ isOpen, onClose, onSubmit, agent }: EditAgentMo
             {/* Basic Info */}
             <div className="space-y-4">
               <h3 className="font-semibold text-lg">Basic Information</h3>
+              
+              {/* Agent Type Display (Read-only) */}
+              <div className="space-y-2">
+                <Label>Agent Type</Label>
+                <div className="flex items-center gap-2 p-3 border rounded-md bg-muted/50">
+                  {(() => {
+                    const typeInfo = getAgentTypeInfo();
+                    const IconComponent = typeInfo.icon;
+                    return (
+                      <>
+                        <IconComponent className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">{typeInfo.label}</span>
+                      </>
+                    );
+                  })()}
+                  <Badge variant="secondary" className="ml-auto text-xs">
+                    Cannot be changed
+                  </Badge>
+                </div>
+              </div>
               
               <div className="space-y-2">
                 <Label htmlFor="name">Agent Name</Label>
@@ -286,4 +325,7 @@ export function EditAgentModal({ isOpen, onClose, onSubmit, agent }: EditAgentMo
     </div>
   );
 }
+
+
+
 

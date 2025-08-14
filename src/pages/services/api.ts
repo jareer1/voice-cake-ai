@@ -35,6 +35,7 @@ export const agentAPI = {
     custom_instructions: string;
     model_provider: string;
     model_resource: string;
+    agent_type: string;
   }) => {
     const response = await api.post('/agents/', agentData);
     return response.data;
@@ -58,6 +59,7 @@ export const agentAPI = {
     custom_instructions: string;
     model_provider: string;
     model_resource: string;
+    agent_type: string;
   }) => {
     const response = await api.put(`/agents/${id}`, agentData);
     return response.data;

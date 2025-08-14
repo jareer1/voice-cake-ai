@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
-import { X, Plus, Mic, Loader2 } from "lucide-react";
+import { X, Plus, Mic, Loader2, MessageSquare, Mic2 } from "lucide-react";
 import { agentAPI } from "@/pages/services/api";
 import { toast } from "sonner";
+import { AgentType } from "@/types/agent";
 
 interface CreateAgentModalProps {
   isOpen: boolean;
@@ -75,6 +76,7 @@ const groupedModels = modelOptions.reduce((acc, model) => {
 }, {} as Record<string, typeof modelOptions>);
 
 export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModalProps) {
+  const [selectedAgentType, setSelectedAgentType] = useState<AgentType | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -88,10 +90,23 @@ export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModal
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate required fields
-    if (!formData.name || !formData.description || !formData.voice || !formData.model_resource) {
-      toast.error("Please fill in all required fields");
+    // Validate agent type selection
+    if (!selectedAgentType) {
+      toast.error("Please select an agent type");
       return;
+    }
+    
+    // Validate required fields based on agent type
+    if (selectedAgentType === 'SPEECH') {
+      if (!formData.name || !formData.description || !formData.voice || !formData.model_resource) {
+        toast.error("Please fill in all required fields for Speech-To-Speech agent");
+        return;
+      }
+    } else {
+      if (!formData.name || !formData.description || !formData.voice || !formData.instructions) {
+        toast.error("Please fill in all required fields for Text-To-Speech agent");
+        return;
+      }
     }
 
     setIsLoading(true);
@@ -105,7 +120,8 @@ export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModal
         description: formData.description,
         custom_instructions: formData.instructions,
         model_provider: formData.model_provider,
-        model_resource: formData.model_resource
+        model_resource: formData.model_resource,
+        agent_type: selectedAgentType!
       };
 
       const response = await agentAPI.createAgent(agentData);
@@ -139,137 +155,217 @@ export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModal
         
         <CardContent className="p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Basic Info */}
-            <div className="space-y-4">
-              <h3 className="font-semibold text-lg">Basic Information</h3>
-              
-              <div className="space-y-2">
-                <Label htmlFor="name">Agent Name</Label>
-                <Input
-                  id="name"
-                  placeholder="e.g., Customer Support AI"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Describe what this agent does and how it helps users..."
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  rows={3}
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Voice Settings */}
-            <div className="space-y-4">
-              <h3 className="font-semibold text-lg">Voice & Personality</h3>
-              
-                             <div className="space-y-2">
-                 <Label>Voice</Label>
-                 <Select value={formData.voice} onValueChange={(value) => setFormData(prev => ({ ...prev, voice: value }))}>
-                   <SelectTrigger>
-                     <SelectValue placeholder="Select a voice" />
-                   </SelectTrigger>
-                   <SelectContent>
-                     {voiceOptions.map((voice) => (
-                       <SelectItem key={voice.id} value={voice.id}>
-                         <div className="flex items-center gap-2">
-                           <Mic className="w-4 h-4" />
-                           {voice.name}
-                         </div>
-                       </SelectItem>
-                     ))}
-                   </SelectContent>
-                 </Select>
-               </div>
-
-                               <div className="space-y-2">
-                  <Label>AI Model</Label>
-                  <Select 
-                    value={formData.model_resource} 
-                    onValueChange={(value) => {
-                      const selectedModel = modelOptions.find(model => model.simpleName === value);
-                      setFormData(prev => ({ 
-                        ...prev, 
-                        model_provider: selectedModel?.provider || "",
-                        model_resource: value 
-                      }));
-                    }}
+            {/* Agent Type Selection */}
+            {!selectedAgentType ? (
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg text-center">Choose Agent Type</h3>
+                <p className="text-muted-foreground text-center">Select the type of agent you want to create</p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Card 
+                    className={`cursor-pointer transition-all hover:shadow-md ${
+                      selectedAgentType === 'SPEECH' ? 'ring-2 ring-primary' : ''
+                    }`}
+                    onClick={() => setSelectedAgentType('SPEECH')}
                   >
+                    <CardContent className="p-6 text-center">
+                      <Mic2 className="w-12 h-12 mx-auto mb-4 text-primary" />
+                      <h4 className="font-semibold text-lg mb-2">Speech-To-Speech</h4>
+                      <p className="text-muted-foreground text-sm">
+                        Full voice conversation with AI. User speaks, AI responds with voice.
+                      </p>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card 
+                    className={`cursor-pointer transition-all hover:shadow-md ${
+                      selectedAgentType === 'TEXT' ? 'ring-2 ring-primary' : ''
+                    }`}
+                    onClick={() => setSelectedAgentType('TEXT')}
+                  >
+                    <CardContent className="p-6 text-center">
+                      <MessageSquare className="w-12 h-12 mx-auto mb-4 text-primary" />
+                      <h4 className="font-semibold text-lg mb-2">Text-To-Speech</h4>
+                      <p className="text-muted-foreground text-sm">
+                        Text input, AI responds with voice. Perfect for chatbots with voice output.
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Agent Type Display */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {selectedAgentType === 'SPEECH' ? (
+                      <Mic2 className="w-5 h-5 text-primary" />
+                    ) : (
+                      <MessageSquare className="w-5 h-5 text-primary" />
+                    )}
+                    <span className="font-semibold">
+                      {selectedAgentType === 'SPEECH' ? 'Speech-To-Speech' : 'Text-To-Speech'} Agent
+                    </span>
+                  </div>
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setSelectedAgentType(null)}
+                  >
+                    Change Type
+                  </Button>
+                </div>
+
+                {/* Basic Info */}
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-lg">Basic Information</h3>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Agent Name</Label>
+                    <Input
+                      id="name"
+                      placeholder="e.g., Customer Support AI"
+                      value={formData.name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      placeholder="Describe what this agent does and how it helps users..."
+                      value={formData.description}
+                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                      rows={3}
+                      required
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Voice Settings - Always shown */}
+            {selectedAgentType && (
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg">Voice & Personality</h3>
+                
+                <div className="space-y-2">
+                  <Label>Voice</Label>
+                  <Select value={formData.voice} onValueChange={(value) => setFormData(prev => ({ ...prev, voice: value }))}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select an AI model" />
+                      <SelectValue placeholder="Select a voice" />
                     </SelectTrigger>
                     <SelectContent>
-                      {Object.entries(groupedModels).map(([provider, models]) => (
-                        <SelectGroup key={provider}>
-                          <SelectLabel>{provider.replace('_', ' ')}</SelectLabel>
-                          {models.map((model) => (
-                            <SelectItem key={model.simpleName} value={model.simpleName}>
-                              <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full bg-primary" />
-                                {model.displayName}
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
+                      {voiceOptions.map((voice) => (
+                        <SelectItem key={voice.id} value={voice.id}>
+                          <div className="flex items-center gap-2">
+                            <Mic className="w-4 h-4" />
+                            {voice.name}
+                          </div>
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
 
-              
-
-              <div className="space-y-2">
-                <Label htmlFor="instructions">Custom Instructions</Label>
-                <Textarea
-                  id="instructions"
-                  placeholder="Provide specific instructions for how the agent should behave and respond..."
-                  value={formData.instructions}
-                  onChange={(e) => setFormData(prev => ({ ...prev, instructions: e.target.value }))}
-                  rows={3}
-                />
+                {/* AI Model - Only for Speech-To-Speech */}
+                {selectedAgentType === 'SPEECH' && (
+                  <div className="space-y-2">
+                    <Label>AI Model</Label>
+                    <Select 
+                      value={formData.model_resource} 
+                      onValueChange={(value) => {
+                        const selectedModel = modelOptions.find(model => model.simpleName === value);
+                        setFormData(prev => ({ 
+                          ...prev, 
+                          model_provider: selectedModel?.provider || "",
+                          model_resource: value 
+                        }));
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select an AI model" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(groupedModels).map(([provider, models]) => (
+                          <SelectGroup key={provider}>
+                            <SelectLabel>{provider.replace('_', ' ')}</SelectLabel>
+                            {models.map((model) => (
+                              <SelectItem key={model.simpleName} value={model.simpleName}>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 rounded-full bg-primary" />
+                                  {model.displayName}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
-            </div>
+            )}
 
-            
+            {/* Instructions - Always shown when agent type is selected */}
+            {selectedAgentType && (
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg">Instructions</h3>
+                <div className="space-y-2">
+                  <Label htmlFor="instructions">
+                    {selectedAgentType === 'SPEECH' ? 'Custom Instructions' : 'Instructions'}
+                  </Label>
+                  <Textarea
+                    id="instructions"
+                    placeholder={
+                      selectedAgentType === 'SPEECH' 
+                        ? "Provide specific instructions for how the agent should behave and respond..."
+                        : "Provide instructions for how the agent should respond to text inputs..."
+                    }
+                    value={formData.instructions}
+                    onChange={(e) => setFormData(prev => ({ ...prev, instructions: e.target.value }))}
+                    rows={3}
+                    required={selectedAgentType === 'TEXT'}
+                  />
+                </div>
+              </div>
+            )}
 
-                         {/* Actions */}
-             <div className="flex gap-3 pt-4 border-t border-border">
-               <Button 
-                 type="button" 
-                 variant="outline" 
-                 onClick={onClose} 
-                 className="flex-1"
-                 disabled={isLoading}
-               >
-                 Cancel
-               </Button>
-               <Button 
-                 type="submit" 
-                 variant="outline" 
-                 className="flex-1 btn-theme-gradient border-theme-primary hover:border-theme-secondary"
-                 disabled={isLoading}
-               >
-                 {isLoading ? (
-                   <>
-                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                     Creating...
-                   </>
-                 ) : (
-                   <>
-                     <Plus className="w-4 h-4 mr-2" />
-                     Create Agent
-                   </>
-                 )}
-               </Button>
-             </div>
+            {/* Actions - Only show when agent type is selected */}
+            {selectedAgentType && (
+              <div className="flex gap-3 pt-4 border-t border-border">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={onClose} 
+                  className="flex-1"
+                  disabled={isLoading}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  variant="outline" 
+                  className="flex-1 btn-theme-gradient border-theme-primary hover:border-theme-secondary"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Create Agent
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
           </form>
         </CardContent>
       </Card>

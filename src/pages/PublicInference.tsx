@@ -17,7 +17,8 @@ import {
   ArrowLeft,
   Bot,
   Users,
-  Clock
+  Clock,
+  MessageSquare
 } from "lucide-react";
 import useHumeInference, { INFERENCE_STATES } from "@/hooks/useHumeInference";
 import { toast } from "sonner";
@@ -31,6 +32,25 @@ const PublicInference = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Helper function to get agent type display info
+  const getAgentTypeInfo = () => {
+    if (!agent) return { label: 'Unknown', icon: Mic, variant: 'secondary' as const };
+    const agentType = agent.agent_type || agent.type || 'SPEECH';
+    if (agentType === 'TEXT') {
+      return {
+        label: 'Text-To-Speech',
+        icon: MessageSquare,
+        variant: 'secondary' as const
+      };
+    } else {
+      return {
+        label: 'Speech-To-Speech',
+        icon: Mic,
+        variant: 'default' as const
+      };
+    }
+  };
+
   const {
     inferenceState,
     isLoading,
@@ -41,7 +61,8 @@ const PublicInference = () => {
     stopInference,
     toggleMic,
   } = useHumeInference({
-    agentId: agentId
+    agentId: agentId,
+    agentData: agent // Pass the agent data we already fetched
   });
 
   // Fetch agent details
@@ -206,13 +227,29 @@ const PublicInference = () => {
         {/* Agent Info Card */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bot className="h-5 w-5" />
-              {agent.name}
-            </CardTitle>
-            <CardDescription>
-              {agent.description}
-            </CardDescription>
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <CardTitle className="flex items-center gap-2 mb-2">
+                  <Bot className="h-5 w-5" />
+                  {agent.name}
+                </CardTitle>
+                <div className="flex items-center gap-2 mb-2">
+                  {(() => {
+                    const typeInfo = getAgentTypeInfo();
+                    const IconComponent = typeInfo.icon;
+                    return (
+                      <Badge variant={typeInfo.variant} className="text-xs flex items-center gap-1">
+                        <IconComponent className="w-3 h-3" />
+                        {typeInfo.label}
+                      </Badge>
+                    );
+                  })()}
+                </div>
+                <CardDescription>
+                  {agent.description}
+                </CardDescription>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">

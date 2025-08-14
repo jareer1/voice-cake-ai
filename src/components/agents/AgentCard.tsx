@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
-import { Bot, Play, Edit, MoreVertical, Users, Clock, Trash2, Share2 } from "lucide-react";
+import { Bot, Play, Edit, MoreVertical, Users, Clock, Trash2, Share2, Mic, MessageSquare } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Agent } from "@/types/agent";
 import { toast } from "sonner";
@@ -22,6 +22,26 @@ interface AgentCardProps {
 
 export function AgentCard({ agent, onEdit, onDelete }: AgentCardProps) {
   const navigate = useNavigate();
+
+  // Helper function to get agent type display info
+  const getAgentTypeInfo = () => {
+    const agentType = agent.agent_type || agent.type || 'SPEECH';
+    if (agentType === 'TEXT') {
+      return {
+        label: 'Text-To-Speech',
+        icon: MessageSquare,
+        variant: 'secondary' as const
+      };
+    } else {
+      return {
+        label: 'Speech-To-Speech',
+        icon: Mic,
+        variant: 'default' as const
+      };
+    }
+  };
+
+  const agentTypeInfo = getAgentTypeInfo();
 
   const handleShare = async () => {
     const shareUrl = `${window.location.origin}/share/${agent.id}`;
@@ -72,10 +92,16 @@ export function AgentCard({ agent, onEdit, onDelete }: AgentCardProps) {
                 {agent.name.slice(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <div>
-              <h3 className="font-semibold text-lg text-foreground">
-                {agent.name}
-              </h3>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-semibold text-lg text-foreground">
+                  {agent.name}
+                </h3>
+                <Badge variant={agentTypeInfo.variant} className="text-xs flex items-center gap-1">
+                  <agentTypeInfo.icon className="w-3 h-3" />
+                  {agentTypeInfo.label}
+                </Badge>
+              </div>
               <p className="text-sm text-muted-foreground line-clamp-2">
                 {agent.description}
               </p>
