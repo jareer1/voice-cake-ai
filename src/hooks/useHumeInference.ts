@@ -391,7 +391,7 @@ const useHumeInference = ({
         // We're behind schedule, catch up
         nextPlayTimeRef.current = currentTime + 0.001; // Tiny buffer
         console.log(`⚠️ Timing drift detected, correcting: expected=${expectedEndTime.toFixed(3)}, current=${currentTime.toFixed(3)}`);
-      } else {
+              } else {
         nextPlayTimeRef.current = expectedEndTime;
       }
       
@@ -409,9 +409,9 @@ const useHumeInference = ({
           console.log('⏰ Stream ended - reset timing');
         }
       };
-      
+
       currentAudioSourceRef.current = source;
-      
+
     } catch (error) {
       console.error('❌ Real-time audio streaming failed:', error);
     }
@@ -420,7 +420,7 @@ const useHumeInference = ({
   // Cleanup function
   const cleanup = useCallback(() => {
     console.log('🧹 Starting enhanced cleanup');
-    
+
     // Clear all audio queues and reset timing
     audioQueueRef.current = [];
     audioStreamQueue.current = [];
@@ -428,10 +428,10 @@ const useHumeInference = ({
     lastChunkEndTimeRef.current = 0;
     isPlayingRef.current = false;
     isStreamingRef.current = false;
-    
+
     executeImmediateInterruption();
     stopSpeechDetection();
-    
+
     // Close audio context
     if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
       try {
@@ -442,7 +442,7 @@ const useHumeInference = ({
         console.warn('Error closing audio context:', error);
       }
     }
-    
+
     // Stop media recorder
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       try {
@@ -462,17 +462,17 @@ const useHumeInference = ({
         }
       });
     }
-    
+
     // Close WebSocket
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
       socketRef.current.close();
     }
-    
+
     // Reset flags
     shouldInterruptRef.current = false;
     isPlayingRef.current = false;
     isUserSpeakingRef.current = false;
-    
+
     console.log('✅ Cleanup completed');
   }, [executeImmediateInterruption, stopSpeechDetection]);
 
@@ -487,7 +487,7 @@ const useHumeInference = ({
     try {
       setInferenceState("CONNECTING");
       setIsLoading(true);
-      
+
       // Use provided agent data or fetch agent details to determine the correct WebSocket endpoint
       let agentInfo = null;
       if (agentData) {
@@ -497,13 +497,13 @@ const useHumeInference = ({
         console.log('📋 Using provided agent details:', agentInfo);
       } else {
         // Fetch agent details using authenticated API
-        try {
-          agentInfo = await agentAPI.getAgent(currentAgentId);
-          setAgentDetails(agentInfo);
-          console.log('📋 Agent details fetched:', agentInfo);
-        } catch (error) {
-          console.warn('Failed to fetch agent details, using default endpoint:', error);
-          // Continue with default endpoint if agent fetch fails
+      try {
+        agentInfo = await agentAPI.getAgent(currentAgentId);
+        setAgentDetails(agentInfo);
+        console.log('📋 Agent details fetched:', agentInfo);
+      } catch (error) {
+        console.warn('Failed to fetch agent details, using default endpoint:', error);
+        // Continue with default endpoint if agent fetch fails
         }
       }
       
@@ -620,7 +620,7 @@ const useHumeInference = ({
             // Detect and preserve the best audio format from Hume
             const audioFormat = data.audio_format || data.format || 'audio/wav';
             const isHighQualityFormat = audioFormat.includes('webm') || audioFormat.includes('opus') || audioFormat.includes('mp3');
-            
+
             console.log('📡 Received Audio Data:', {
               dataLength: data.audio.length,
               audioFormat: audioFormat,
@@ -639,7 +639,7 @@ const useHumeInference = ({
             if (audioBlob) {
               // Manage queue size to prevent audio buildup and distortion
               const MAX_QUEUE_SIZE = 8; // Allow a larger but bounded queue
-              
+
               if (nextPlayTimeRef.current === 0) {
                 // First chunk - start streaming immediately
                 streamAudioChunk(audioBlob, audioFormat);
