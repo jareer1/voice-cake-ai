@@ -97,7 +97,7 @@ export default function Tools() {
   const loadTools = async () => {
     try {
       setIsLoading(true);
-      const response = await api.get('/tools', {
+      const response = await api.get('/tools/', {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -270,12 +270,12 @@ export default function Tools() {
       };
 
       if (editingTool) {
-        await api.put(`/tools/${editingTool.id}`, toolData, {
+        await api.put(`/tools/${editingTool.id}/`, toolData, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setSuccess('Tool updated successfully');
       } else {
-        await api.post('/tools', toolData, {
+        await api.post('/tools/', toolData, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setSuccess('Tool created successfully');
@@ -324,7 +324,7 @@ export default function Tools() {
     if (!confirm('Are you sure you want to delete this tool?')) return;
 
     try {
-      await api.delete(`/tools/${toolId}`, {
+              await api.delete(`/tools/${toolId}/`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setSuccess('Tool deleted successfully');
