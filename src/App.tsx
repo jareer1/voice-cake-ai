@@ -26,6 +26,7 @@ import AddOnPurchase from "./pages/AddOnPurchase";
 import Inference from "./pages/Inference";
 import PublicInference from "./pages/PublicInference";
 import LiveKitTest from "./pages/LiveKitTest";
+import Tools from "./pages/Tools";
 // import ApiKeys from "./pages/ApiKeys";
 
 const queryClient = new QueryClient();
@@ -120,6 +121,13 @@ const App = () => {
                 </ProtectedRoute>
               } />
               <Route path="/livekit-test" element={<LiveKitTest />} />
+              <Route path="/tools" element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Tools />
+                  </AppLayout>
+                </ProtectedRoute>
+              } />
               {/* <Route path="/api-keys" element={
                 <ProtectedRoute>
                   <AppLayout>

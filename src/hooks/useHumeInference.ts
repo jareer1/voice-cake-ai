@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import config from "@/lib/config";
 import { agentAPI } from "@/pages/services/api";
+import { Room, RoomEvent, Track, RemoteAudioTrack, RemoteParticipant } from 'livekit-client';
 
 export const INFERENCE_STATES = {
   IDLE: "idle",
@@ -26,11 +27,15 @@ const useHumeInference = ({
   const [isMicOn, setIsMicOn] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
   const [agentDetails, setAgentDetails] = useState<any>(null);
+  const [sessionData, setSessionData] = useState<any>(null);
   
-  // WebSocket and Media Stream refs
+  // WebSocket and Media Stream refs (for SPEECH agents)
   const socketRef = useRef<WebSocket | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  
+  // LiveKit room ref (for TEXT agents)
+  const roomRef = useRef<Room | null>(null);
   
   // Audio Management
   const audioQueueRef = useRef<{ type: string; blob: Blob; mimeType: string }[]>([]);
@@ -250,6 +255,11 @@ const useHumeInference = ({
         }
         const rms = Math.sqrt(sum / bufferLength);
         
+        // Log audio levels periodically for TEXT agents (for debugging)
+        if ((agentDetails?.agent_type === 'TEXT' || agentDetails?.type === 'TEXT') && Math.random() < 0.05) { // 5% chance to log
+          console.log(`🔊 TEXT Agent - User audio level: ${rms.toFixed(1)}, Speaking: ${isUserSpeakingRef.current}, Threshold: 40`);
+        }
+        
         // Enhanced speech detection threshold - increased sensitivity to avoid background noise
         if (rms > 40 && !isUserSpeakingRef.current) { // Increased threshold to avoid background noise
           speechFramesRef.current++;
@@ -258,8 +268,13 @@ const useHumeInference = ({
           // Require 5 consecutive speech frames to confirm speaking (more reliable detection)
           if (speechFramesRef.current >= 5) {
             isUserSpeakingRef.current = true;
-            console.log('🎤 User started speaking - IMMEDIATE interruption');
-            executeImmediateInterruption();
+            // For TEXT agents, just log speaking detection (no interruption needed)
+            if (agentDetails?.agent_type === 'TEXT' || agentDetails?.type === 'TEXT') {
+              console.log('🎤 User started speaking in TEXT agent session');
+            } else {
+              console.log('🎤 User started speaking - IMMEDIATE interruption');
+              executeImmediateInterruption();
+            }
           }
         } else if (rms < 25 && isUserSpeakingRef.current) { // Increased threshold for silence detection
           silenceFramesRef.current++;
@@ -268,11 +283,16 @@ const useHumeInference = ({
           // Require 8 consecutive silence frames to confirm stopped speaking
           if (silenceFramesRef.current >= 8) {
             isUserSpeakingRef.current = false;
-            console.log('🤫 User stopped speaking');
-            // Reset interruption flag after a short delay
-            setTimeout(() => {
-              shouldInterruptRef.current = false;
-            }, 500);
+            // For TEXT agents, just log speaking detection
+            if (agentDetails?.agent_type === 'TEXT' || agentDetails?.type === 'TEXT') {
+              console.log('🤫 User stopped speaking in TEXT agent session');
+            } else {
+              console.log('🤫 User stopped speaking');
+              // Reset interruption flag after a short delay
+              setTimeout(() => {
+                shouldInterruptRef.current = false;
+              }, 500);
+            }
           }
         } else {
           // Reset counters if neither clear speech nor silence
@@ -463,9 +483,25 @@ const useHumeInference = ({
       });
     }
 
-    // Close WebSocket
+    // Close WebSocket (SPEECH agents)
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
       socketRef.current.close();
+    }
+
+    // Disconnect from LiveKit room (TEXT agents)
+    if (roomRef.current) {
+      console.log('🔌 Disconnecting from LiveKit room...');
+      
+      // Clean up any audio elements created for TEXT agent
+      const audioElements = document.querySelectorAll('audio[data-livekit-track]');
+      audioElements.forEach((element, index) => {
+        console.log(`🧹 Cleaning up TEXT agent audio element ${index}`);
+        element.remove();
+      });
+      
+      roomRef.current.disconnect();
+      roomRef.current = null;
+      console.log('✅ Disconnected from LiveKit room');
     }
 
     // Reset flags
@@ -475,6 +511,138 @@ const useHumeInference = ({
 
     console.log('✅ Cleanup completed');
   }, [executeImmediateInterruption, stopSpeechDetection]);
+
+  // Connect to LiveKit room for TEXT agents (simplified version of VoiceAssistant approach)
+  const connectToLiveKitRoom = useCallback(async (sessionData: any) => {
+    try {
+      console.log('🔗 Connecting to LiveKit room for TEXT agent...');
+      const room = new Room();
+      roomRef.current = room;
+
+      // Set up event listeners
+      room.on(RoomEvent.Connected, async () => {
+        console.log('✅ Connected to LiveKit room for TEXT agent');
+        console.log('🏠 Room details:', {
+          name: room.name,
+          participants: room.numParticipants,
+          localParticipant: room.localParticipant.identity
+        });
+
+        // Enable microphone for user input detection
+        try {
+          await room.localParticipant.enableCameraAndMicrophone();
+          console.log('🎤 Microphone enabled for TEXT agent user input');
+          
+          // Start real-time speaking detection for TEXT agent
+          const audioTracks = room.localParticipant.audioTrackPublications;
+          if (audioTracks.size > 0) {
+            const audioTrack = Array.from(audioTracks.values())[0].track;
+            if (audioTrack?.mediaStream) {
+              startSpeechDetection(audioTrack.mediaStream);
+              console.log('🎯 Started real-time speaking detection for TEXT agent');
+            }
+          }
+        } catch (error) {
+          console.warn('⚠️ Could not enable microphone for TEXT agent:', error);
+        }
+      });
+
+      room.on(RoomEvent.Disconnected, () => {
+        console.log('🔌 Disconnected from LiveKit room');
+        setIsConnected(false);
+      });
+
+      room.on(RoomEvent.ParticipantConnected, (participant) => {
+        console.log('👤 Participant joined:', participant.identity);
+        if (participant.identity.startsWith('agent_') || participant.identity.includes('agent')) {
+          console.log('🤖 TEXT Agent participant detected:', participant.identity);
+        }
+      });
+
+      // Handle audio tracks from agent (TEXT-to-Speech output)
+      room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
+        if (track.kind === Track.Kind.Audio && participant.identity.includes('agent')) {
+          console.log('🎵 TEXT Agent audio track received:', {
+            participantId: participant.identity,
+            trackSid: publication.trackSid,
+            trackName: publication.trackName,
+            muted: publication.isMuted,
+            enabled: publication.isEnabled
+          });
+
+          // Attach audio track for playback
+          const audioElement = track.attach() as HTMLAudioElement;
+          audioElement.autoplay = true;
+          audioElement.volume = 1.0;
+          audioElement.setAttribute('data-livekit-track', 'text-agent-audio');
+          
+          // Enhanced logging for TEXT agent audio
+          audioElement.onplay = () => {
+            console.log('▶️ TEXT Agent audio started playing');
+            console.log('🎵 Audio element state:', {
+              volume: audioElement.volume,
+              muted: audioElement.muted,
+              duration: audioElement.duration,
+              currentTime: audioElement.currentTime
+            });
+          };
+          
+          audioElement.onended = () => {
+            console.log('🔚 TEXT Agent audio ended');
+          };
+          
+          audioElement.onerror = (error) => {
+            console.error('❌ TEXT Agent audio error:', error);
+          };
+
+          // Add to document for playback
+          document.body.appendChild(audioElement);
+          console.log('🔊 TEXT Agent audio element attached to DOM');
+        }
+      });
+
+      // Monitor local audio (user speaking detection)
+      room.on(RoomEvent.LocalTrackPublished, (publication, participant) => {
+        if (publication.track?.kind === Track.Kind.Audio) {
+          console.log('📤 User audio track published for TEXT agent:', {
+            trackSid: publication.trackSid,
+            trackName: publication.trackName,
+            participant: participant.identity,
+            muted: publication.isMuted,
+            enabled: publication.isEnabled
+          });
+          
+          // Start real-time speaking detection when audio track is published
+          if (publication.track?.mediaStream) {
+            startSpeechDetection(publication.track.mediaStream);
+            console.log('🎯 Started real-time speaking detection for newly published TEXT agent audio track');
+          }
+        }
+      });
+
+      room.on(RoomEvent.TrackMuted, (publication, participant) => {
+        if (publication.kind === Track.Kind.Audio && participant.isLocal) {
+          console.log('🔇 User audio muted in TEXT agent session');
+        }
+      });
+
+      room.on(RoomEvent.TrackUnmuted, (publication, participant) => {
+        if (publication.kind === Track.Kind.Audio && participant.isLocal) {
+          console.log('🎤 User audio unmuted in TEXT agent session');
+        }
+      });
+
+      // Connect to room - LiveKit handles all audio automatically
+      await room.connect(sessionData.url, sessionData.token);
+      console.log('✅ Successfully connected to LiveKit room for TEXT agent');
+
+    } catch (error) {
+      console.error('❌ Error connecting to LiveKit room:', error);
+      throw new Error('Failed to connect to LiveKit room');
+    }
+  }, []);
+
+
 
   // Start inference connection
   const startInference = useCallback(async (targetAgentId?: string) => {
@@ -488,7 +656,7 @@ const useHumeInference = ({
       setInferenceState("CONNECTING");
       setIsLoading(true);
 
-      // Use provided agent data or fetch agent details to determine the correct WebSocket endpoint
+      // Use provided agent data or fetch agent details to determine the correct approach
       let agentInfo = null;
       if (agentData) {
         // Use pre-fetched agent data (for public inference)
@@ -497,15 +665,57 @@ const useHumeInference = ({
         console.log('📋 Using provided agent details:', agentInfo);
       } else {
         // Fetch agent details using authenticated API
-      try {
-        agentInfo = await agentAPI.getAgent(currentAgentId);
-        setAgentDetails(agentInfo);
-        console.log('📋 Agent details fetched:', agentInfo);
-      } catch (error) {
-        console.warn('Failed to fetch agent details, using default endpoint:', error);
-        // Continue with default endpoint if agent fetch fails
+        try {
+          agentInfo = await agentAPI.getAgent(currentAgentId);
+          setAgentDetails(agentInfo);
+          console.log('📋 Agent details fetched:', agentInfo);
+        } catch (error) {
+          console.warn('Failed to fetch agent details, using default endpoint:', error);
+          // Continue with default endpoint if agent fetch fails
         }
       }
+      
+      const agentType = agentInfo?.agent_type || agentInfo?.type || 'SPEECH';
+      console.log(`📡 Agent type detected: ${agentType}`);
+
+      // For TEXT agents, use clean LiveKit session approach (like VoiceAssistant)
+      if (agentType === 'TEXT') {
+        console.log('🔗 TEXT agent detected - using LiveKit session approach');
+        
+        // Start LiveKit session for TEXT agent (simplified - only agentId required)
+        const response = await fetch(`${config.api.baseURL}/livekit/session/start`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          },
+          body: JSON.stringify({
+            agent_id: currentAgentId,
+            participant_name: `User_${Date.now()}` // Auto-generated participant name
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || 'Failed to start LiveKit session for TEXT agent');
+        }
+
+        const sessionData = await response.json();
+        console.log('📋 LiveKit session created for TEXT agent:', sessionData);
+        setSessionData(sessionData);
+        
+        // Connect to LiveKit room (let LiveKit handle all audio)
+        await connectToLiveKitRoom(sessionData);
+        
+        setInferenceState("ACTIVE");
+        setIsConnected(true);
+        toast.success("TEXT agent session started successfully!");
+        
+        return; // Exit early for TEXT agents - no WebSocket or custom audio needed
+      }
+
+      // For SPEECH agents, continue with the existing WebSocket approach
+      console.log('🔗 SPEECH agent detected - using WebSocket approach');
       
       // Get microphone access with high-quality audio settings
       const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -521,18 +731,15 @@ const useHumeInference = ({
 
       mediaStreamRef.current = stream;
 
-
-
       // Start speech detection
-
       startSpeechDetection(stream);
 
-
-
-      // Create WebSocket connection with agent type detection
-      const agentType = agentInfo?.agent_type || agentInfo?.type || 'SPEECH';
+      // Create WebSocket connection for SPEECH agents
       const wsUrl = config.getHumeWebSocketUrl(currentAgentId, agentType);
-      console.log(`🔗 Connecting to WebSocket: ${wsUrl} (agent type: ${agentType})`);
+      const endpointInfo = config.getEndpointInfo(agentType);
+      
+      console.log(`🔗 Connecting to WebSocket: ${wsUrl}`);
+      console.log(`📡 Agent routing info:`, endpointInfo);
       const socket = new WebSocket(wsUrl);
 
       socketRef.current = socket;
@@ -755,21 +962,37 @@ const useHumeInference = ({
 
   // Stop inference
 
-  const stopInference = useCallback(() => {
+  const stopInference = useCallback(async () => {
+    // For TEXT agents using LiveKit sessions, properly end the session
+    if ((agentDetails?.agent_type === 'TEXT' || agentDetails?.type === 'TEXT') && sessionData) {
+      try {
+        // End the LiveKit session on the server (following VoiceAssistant pattern)
+        const response = await fetch(`${config.api.baseURL}/livekit/session/${sessionData.session_id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          },
+        });
+        
+        if (response.ok) {
+          console.log('✅ LiveKit session ended successfully for TEXT agent');
+        } else {
+          console.warn('⚠️ Failed to end LiveKit session properly');
+        }
+      } catch (error) {
+        console.warn('⚠️ Error ending LiveKit session:', error);
+      }
+    }
 
     cleanup();
-
+    setSessionData(null);
     setInferenceState("IDLE");
-
     setIsLoading(false);
-
     setIsMicOn(true);
-
     setIsConnected(false);
-
     toast.success("Inference stopped");
 
-  }, [cleanup]);
+  }, [cleanup, agentDetails, sessionData]);
 
 
 
@@ -822,25 +1045,16 @@ const useHumeInference = ({
 
 
   return {
-
     inferenceState,
-
     isLoading,
-
     isMicOn,
-
     isConnected,
-
     isUserSpeaking: isUserSpeakingRef.current,
-
     startInference,
-
     stopInference,
-
     toggleMic,
-
+    sessionData, // Expose session data for TEXT agents
     mediaStream: mediaStreamRef.current,
-
   };
 
 };

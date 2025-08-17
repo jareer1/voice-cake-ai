@@ -1,4 +1,4 @@
-import { Bot, Settings, TestTube, Mic, Users, Home, KeyRound } from "lucide-react";
+import { Bot, Settings, TestTube, Mic, Users, Home, KeyRound, Wrench } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -16,6 +16,7 @@ import {
 const menuItems = [
   { title: "Dashboard", url: "/dashboard", icon: Home },
   { title: "Agents", url: "/agents", icon: Bot },
+  { title: "Tools", url: "/tools", icon: Wrench },
   { title: "Usage", url: "/usage", icon: Users },
   { title: "Add-ons", url: "/addons", icon: Mic },
   { title: "Settings", url: "/settings", icon: Settings },

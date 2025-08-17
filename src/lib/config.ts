@@ -31,6 +31,9 @@ export const config = {
       return finalUrl;
     })(),
     humeEndpoint: import.meta.env.VITE_HUME_WS_ENDPOINT || "/api/v1/hume/ws/inference",
+    // Updated to use LiveKit endpoints for TEXT-TO-SPEECH
+    livekitTextEndpoint: "/api/v1/livekit/ws/voice",
+    // Keep legacy endpoint for backwards compatibility
     deepgramTextEndpoint: "/api/v1/deepgram/ws/voice",
   },
   
@@ -43,7 +46,8 @@ export const config = {
     console.log('Final API Base URL:', config.api.baseURL);
     console.log('Final WS Base URL:', config.websocket.baseURL);
     console.log('Hume Endpoint:', config.websocket.humeEndpoint);
-    console.log('Deepgram Text Endpoint:', config.websocket.deepgramTextEndpoint);
+    console.log('LiveKit Text Endpoint:', config.websocket.livekitTextEndpoint);
+    console.log('Deepgram Text Endpoint (Legacy):', config.websocket.deepgramTextEndpoint);
   },
   
   // Environment
@@ -51,10 +55,27 @@ export const config = {
   
   // Helper functions
   getHumeWebSocketUrl: (agentId: string, agentType?: string) => {
-    const endpoint = agentType === 'TEXT' 
-      ? config.websocket.deepgramTextEndpoint 
-      : config.websocket.humeEndpoint;
+    // TEXT agents now use LiveKit sessions (HTTP POST), not WebSocket
+    if (agentType === 'TEXT') {
+      console.warn('⚠️ TEXT agents should use LiveKit session API, not WebSocket');
+      return null; // TEXT agents should not use WebSocket
+    }
+    
+    const endpoint = config.websocket.humeEndpoint;
     return `${config.websocket.baseURL}${endpoint}/${agentId}`;
+  },
+  
+  // Debug helper to show endpoint routing
+  getEndpointInfo: (agentType?: string) => {
+    const isTextAgent = agentType === 'TEXT';
+    return {
+      agentType: agentType || 'SPEECH',
+      endpoint: isTextAgent ? 'LiveKit Session API' : config.websocket.humeEndpoint,
+      service: isTextAgent ? 'LiveKit Session (TEXT-TO-SPEECH)' : 'Hume WebSocket (SPEECH-TO-SPEECH)',
+      description: isTextAgent 
+        ? 'Using LiveKit session API for text-based voice generation with HTTP POST'
+        : 'Using Hume WebSocket for real-time speech-to-speech conversation'
+    };
   },
   
   isDevelopment: () => config.env === "development",
