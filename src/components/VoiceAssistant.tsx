@@ -53,32 +53,36 @@ export default function VoiceAssistant({ apiUrl }: VoiceAssistantProps) {
       console.log('🔊 Setting up audio monitoring...');
       
       // Create audio context
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      audioContextRef.current = new (window.AudioContext || (window.AudioContext || (window as any).webkitAudioContext)());
       console.log('🎵 Audio context created, sample rate:', audioContextRef.current.sampleRate);
       
-      // Get microphone stream
-      micStreamRef.current = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          sampleRate: 48000
-        } 
-      });
-      console.log('🎤 Microphone stream obtained');
-      
-      // Create analyser
-      analyserRef.current = audioContextRef.current.createAnalyser();
-      analyserRef.current.fftSize = 256;
-      analyserRef.current.smoothingTimeConstant = 0.8;
-      
-      const source = audioContextRef.current.createMediaStreamSource(micStreamRef.current);
-      source.connect(analyserRef.current);
-      
-      console.log('📊 Audio analyser connected');
-      
-      // Start monitoring audio levels
-      startSpeakingDetection();
+      // Get the audio stream from LiveKit's published audio track
+      if (roomRef.current && roomRef.current.localParticipant.audioTrackPublications.size > 0) {
+        const audioPublication = Array.from(roomRef.current.localParticipant.audioTrackPublications.values())[0];
+        const audioTrack = audioPublication.track;
+        
+        if (audioTrack && audioTrack.mediaStream) {
+          micStreamRef.current = audioTrack.mediaStream;
+          console.log('🎤 Using LiveKit audio stream for monitoring');
+          
+          // Create analyser
+          analyserRef.current = audioContextRef.current.createAnalyser();
+          analyserRef.current.fftSize = 256;
+          analyserRef.current.smoothingTimeConstant = 0.8;
+          
+          const source = audioContextRef.current.createMediaStreamSource(micStreamRef.current);
+          source.connect(analyserRef.current);
+          
+          console.log('📊 Audio analyser connected to LiveKit stream');
+          
+          // Start monitoring audio levels
+          startSpeakingDetection();
+        } else {
+          console.warn('⚠️ No audio track available from LiveKit');
+        }
+      } else {
+        console.warn('⚠️ No audio publications available from LiveKit');
+      }
       
     } catch (error) {
       console.error('❌ Failed to setup audio monitoring:', error);
@@ -145,24 +149,11 @@ export default function VoiceAssistant({ apiUrl }: VoiceAssistantProps) {
     setIsUserSpeaking(false);
   };
 
-  // Request microphone permission
-  const requestMicrophonePermission = async () => {
-    try {
-      console.log('🎤 Requesting microphone permission...');
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      setHasPermissions(true);
-      console.log('✅ Microphone permission granted');
-      // Stop the test stream
-      stream.getTracks().forEach(track => track.stop());
-      
-      // Setup audio monitoring after permission is granted
-      await setupAudioMonitoring();
-      
-    } catch (error) {
-      console.error('❌ Microphone permission denied:', error);
-      setHasPermissions(false);
-      throw new Error('Microphone access is required for voice chat. Please grant permission and try again.');
-    }
+    // Function to clear cached permissions (useful for testing or when permissions change)
+  const clearCachedPermissions = () => {
+    localStorage.removeItem('microphonePermission');
+    setHasPermissions(false);
+    console.log('🧹 Cached microphone permissions cleared');
   };
 
   const startSession = async () => {
@@ -174,14 +165,11 @@ export default function VoiceAssistant({ apiUrl }: VoiceAssistantProps) {
     setIsLoading(true);
     setError(null);
 
-    try {
+        try {
       console.log('🚀 Starting LiveKit session...');
       
-             // Request microphone permissions first
-       await requestMicrophonePermission();
-       
-       // Start a new session - this will create the agent
-       const response = await fetch(`${baseUrl}/livekit/session/start`, {
+      // Start a new session - this will create the agent
+      const response = await fetch(`${baseUrl}/livekit/session/start`, {
          method: 'POST',
          headers: {
            'Content-Type': 'application/json',
@@ -236,23 +224,29 @@ export default function VoiceAssistant({ apiUrl }: VoiceAssistantProps) {
         setIsConnected(true);
         setAgentStatus('connected');
         
-        // Enable microphone and camera after connection
-        try {
-          await room.localParticipant.enableCameraAndMicrophone();
-          setIsRecording(true);
-          console.log('🎤 Microphone and camera enabled for LiveKit');
-          
-          // Log local participant details
-          console.log('👤 Local participant:', {
-            identity: room.localParticipant.identity,
-            audioTracks: room.localParticipant.audioTrackPublications.size,
-            videoTracks: room.localParticipant.videoTrackPublications.size
-          });
-          
-        } catch (error) {
-          console.error('❌ Failed to enable microphone:', error);
-          setError('Failed to enable microphone');
-        }
+                          // Enable microphone only after connection (no camera needed for voice chat)
+         try {
+           // According to LiveKit docs, this will handle permissions and publish the audio track
+           await room.localParticipant.setMicrophoneEnabled(true);
+           setIsRecording(true);
+           setHasPermissions(true); // Update permission status
+           console.log('🎤 Microphone enabled for LiveKit (audio only)');
+           
+           // Setup audio monitoring for speaking detection after LiveKit has the stream
+           await setupAudioMonitoring();
+           
+           // Log local participant details
+           console.log('👤 Local participant:', {
+             identity: room.localParticipant.identity,
+             audioTracks: room.localParticipant.audioTrackPublications.size,
+             videoTracks: room.localParticipant.videoTrackPublications.size
+           });
+           
+         } catch (error) {
+           console.error('❌ Failed to enable microphone:', error);
+           setHasPermissions(false);
+           setError('Failed to enable microphone');
+         }
       });
 
       room.on(RoomEvent.Disconnected, () => {
@@ -737,12 +731,10 @@ export default function VoiceAssistant({ apiUrl }: VoiceAssistantProps) {
              )}
            </div>
            
-           {/* Permissions Status */}
-           {hasPermissions && (
-             <Badge variant="outline" className="text-xs">
-               ✅ Microphone Access Granted
-             </Badge>
-           )}
+                       {/* Permissions Status */}
+            <Badge variant="outline" className={`text-xs ${hasPermissions ? 'border-green-500 text-green-700' : 'border-yellow-500 text-yellow-700'}`}>
+              {hasPermissions ? '✅ Microphone Access Granted' : '⚠️ Microphone Permission Will Be Requested'}
+            </Badge>
          </div>
 
         {/* Error Display */}
@@ -812,8 +804,8 @@ export default function VoiceAssistant({ apiUrl }: VoiceAssistantProps) {
                </div>
                
                {/* Debug Controls */}
-               {sessionData && audioElementsRef.current.length > 0 && (
-                 <div className="text-center">
+               <div className="text-center space-y-2">
+                 {sessionData && audioElementsRef.current.length > 0 && (
                    <Button
                      onClick={testAudioPlayback}
                      variant="outline"
@@ -822,8 +814,16 @@ export default function VoiceAssistant({ apiUrl }: VoiceAssistantProps) {
                    >
                      🔧 Test Audio Playback
                    </Button>
-                 </div>
-               )}
+                 )}
+                 <Button
+                   onClick={clearCachedPermissions}
+                   variant="outline"
+                   size="sm"
+                   className="text-xs"
+                 >
+                   🧹 Clear Permissions Cache
+                 </Button>
+               </div>
              </>
            )}
          </div>

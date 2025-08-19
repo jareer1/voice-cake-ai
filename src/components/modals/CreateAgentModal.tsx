@@ -19,14 +19,17 @@ interface CreateAgentModalProps {
 
 
 const voiceOptions = [
-  { id: "Lee - Scott", name: "Lee Scott", provider: "elevenlabs" },
-  { id: "Adele - Young - British", name: "Adele Young British", provider: "elevenlabs" },
-  { id: "Steve - American", name: "Steve American", provider: "elevenlabs" },
-  { id: "Adam - British", name: "Adam - British", provider: "elevenlabs" },
-  { id: "Chloe - British", name: "Chloe British", provider: "elevenlabs" },
-  { id: "Veronica - Young - British", name: "Veronica Young British", provider: "elevenlabs" },
-  { id: "Lucy - Mature  - British", name: "Lucy Mature British", provider: "elevenlabs" },
-  { id: "Carol  - Mature - British", name: "Carol Mature British", provider: "elevenlabs" },
+  // VoiceCake voices (masking Hume)
+  { id: "Lee - Scott", name: "Lee Scott", provider: "voicecake" },
+  { id: "Adele - Young - British", name: "Adele Young British", provider: "voicecake" },
+  { id: "Steve - American", name: "Steve American", provider: "voicecake" },
+  { id: "Adam - British", name: "Adam - British", provider: "voicecake" },
+  { id: "Chloe - British", name: "Chloe British", provider: "voicecake" },
+  { id: "Veronica - Young - British", name: "Veronica Young British", provider: "voicecake" },
+  { id: "Lucy - Mature  - British", name: "Lucy Mature British", provider: "voicecake" },
+  { id: "Carol  - Mature - British", name: "Carol Mature British", provider: "voicecake" },
+  // Cartesia default voice
+  { id: "default", name: "Default Voice", provider: "cartesia" },
 ];
 
 const modelOptions = [
@@ -80,6 +83,7 @@ export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModal
   const [formData, setFormData] = useState({
     name: "",
     description: "",
+    voice_provider: "",
     voice: "",
     model_provider: "",
     model_resource: "",
@@ -98,12 +102,12 @@ export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModal
     
     // Validate required fields based on agent type
     if (selectedAgentType === 'SPEECH') {
-      if (!formData.name || !formData.description || !formData.voice || !formData.model_resource) {
+      if (!formData.name || !formData.description || !formData.voice_provider || !formData.voice || !formData.model_resource) {
         toast.error("Please fill in all required fields for Speech-To-Speech agent");
         return;
       }
     } else {
-      if (!formData.name || !formData.description || !formData.voice || !formData.instructions) {
+      if (!formData.name || !formData.description || !formData.voice_provider || !formData.voice || !formData.instructions) {
         toast.error("Please fill in all required fields for Text-To-Speech agent");
         return;
       }
@@ -115,7 +119,7 @@ export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModal
       // Map form data to backend expected format
       const agentData = {
         name: formData.name,
-        voice_provider: "hume", // Default to hume as per your example
+        voice_provider: formData.voice_provider === "voicecake" ? "hume" : formData.voice_provider.toLowerCase(), // VoiceCake masks Hume, ensure lowercase
         voice_id: formData.voice,
         description: formData.description,
         custom_instructions: formData.instructions,
@@ -252,23 +256,64 @@ export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModal
               <div className="space-y-4">
                 <h3 className="font-semibold text-lg">Voice & Personality</h3>
                 
-                <div className="space-y-2">
-                  <Label>Voice</Label>
-                  <Select value={formData.voice} onValueChange={(value) => setFormData(prev => ({ ...prev, voice: value }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a voice" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {voiceOptions.map((voice) => (
-                        <SelectItem key={voice.id} value={voice.id}>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>TTS Provider</Label>
+                    <Select 
+                      value={formData.voice_provider} 
+                      onValueChange={(value) => {
+                        setFormData(prev => ({ 
+                          ...prev, 
+                          voice_provider: value,
+                          voice: "" // Reset voice when provider changes
+                        }));
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a TTS provider" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="voicecake">
                           <div className="flex items-center gap-2">
-                            <Mic className="w-4 h-4" />
-                            {voice.name}
+                            <div className="w-2 h-2 rounded-full bg-blue-500" />
+                            VoiceCake
                           </div>
                         </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                        <SelectItem value="cartesia">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-green-500" />
+                            Cartesia
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {formData.voice_provider && (
+                    <div className="space-y-2">
+                      <Label>Voice</Label>
+                      <Select 
+                        value={formData.voice} 
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, voice: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a voice" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {voiceOptions
+                            .filter(voice => voice.provider === formData.voice_provider)
+                            .map((voice) => (
+                              <SelectItem key={voice.id} value={voice.id}>
+                                <div className="flex items-center gap-2">
+                                  <Mic className="w-4 h-4" />
+                                  {voice.name}
+                                </div>
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
 
                 {/* AI Model - Only for Speech-To-Speech */}
@@ -315,21 +360,49 @@ export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModal
               <div className="space-y-4">
                 <h3 className="font-semibold text-lg">Instructions</h3>
                 <div className="space-y-2">
-                  <Label htmlFor="instructions">
-                    {selectedAgentType === 'SPEECH' ? 'Custom Instructions' : 'Instructions'}
-                  </Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="instructions">
+                      {selectedAgentType === 'SPEECH' ? 'Custom Instructions' : 'Instructions'}
+                    </Label>
+                    <span className="text-xs text-muted-foreground">
+                      {formData.instructions.length}/2000 characters
+                    </span>
+                  </div>
                   <Textarea
                     id="instructions"
                     placeholder={
                       selectedAgentType === 'SPEECH' 
-                        ? "Provide specific instructions for how the agent should behave and respond..."
-                        : "Provide instructions for how the agent should respond to text inputs..."
+                        ? `You are a helpful AI assistant. Provide detailed instructions for how you should behave, respond, and interact with users.
+
+Examples:
+• Your personality and communication style
+• Specific topics you're knowledgeable about
+• How to handle different types of questions
+• Any specific behaviors or responses to avoid
+• Context about your role or purpose
+
+Be as detailed as possible to ensure consistent and helpful responses.`
+                        : `Provide detailed instructions for how the agent should respond to text inputs.
+
+Examples:
+• Response style and tone
+• Specific topics or domains of expertise
+• How to handle different types of requests
+• Any limitations or guidelines
+• Context about the agent's purpose
+
+Be specific to ensure the agent provides helpful and consistent responses.`
                     }
                     value={formData.instructions}
                     onChange={(e) => setFormData(prev => ({ ...prev, instructions: e.target.value }))}
-                    rows={3}
+                    rows={8}
+                    maxLength={2000}
+                    className="min-h-[200px] resize-y"
                     required={selectedAgentType === 'TEXT'}
                   />
+                  <p className="text-xs text-muted-foreground">
+                    💡 Tip: The more detailed your instructions, the better the agent will perform. Include personality traits, response style, and specific guidelines.
+                  </p>
                 </div>
               </div>
             )}

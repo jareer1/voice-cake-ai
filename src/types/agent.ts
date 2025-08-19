@@ -15,7 +15,7 @@ export interface Agent {
   
   // Optional fields for extended agent data (if needed)
   voice?: {
-    provider: 'elevenlabs' | 'openai' | 'custom';
+    provider: 'elevenlabs' | 'openai' | 'custom' | 'hume' | 'voicecake' | 'cartesia';
     voiceId: string;
     settings: {
       speed?: number;
