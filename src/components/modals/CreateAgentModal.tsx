@@ -360,14 +360,9 @@ export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModal
               <div className="space-y-4">
                 <h3 className="font-semibold text-lg">Instructions</h3>
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="instructions">
-                      {selectedAgentType === 'SPEECH' ? 'Custom Instructions' : 'Instructions'}
-                    </Label>
-                    <span className="text-xs text-muted-foreground">
-                      {formData.instructions.length}/2000 characters
-                    </span>
-                  </div>
+                  <Label htmlFor="instructions">
+                    {selectedAgentType === 'SPEECH' ? 'Custom Instructions' : 'Instructions'}
+                  </Label>
                   <Textarea
                     id="instructions"
                     placeholder={
@@ -396,7 +391,6 @@ Be specific to ensure the agent provides helpful and consistent responses.`
                     value={formData.instructions}
                     onChange={(e) => setFormData(prev => ({ ...prev, instructions: e.target.value }))}
                     rows={8}
-                    maxLength={2000}
                     className="min-h-[200px] resize-y"
                     required={selectedAgentType === 'TEXT'}
                   />

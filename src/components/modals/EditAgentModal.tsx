@@ -328,12 +328,7 @@ export function EditAgentModal({ isOpen, onClose, onSubmit, agent }: EditAgentMo
               </div>
 
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="instructions">Custom Instructions</Label>
-                  <span className="text-xs text-muted-foreground">
-                    {formData.instructions.length}/2000 characters
-                  </span>
-                </div>
+                <Label htmlFor="instructions">Custom Instructions</Label>
                 <Textarea
                   id="instructions"
                   placeholder={`You are a helpful AI assistant. Provide detailed instructions for how you should behave, respond, and interact with users.
@@ -349,7 +344,6 @@ Be as detailed as possible to ensure consistent and helpful responses.`}
                   value={formData.instructions}
                   onChange={(e) => setFormData(prev => ({ ...prev, instructions: e.target.value }))}
                   rows={8}
-                  maxLength={2000}
                   className="min-h-[200px] resize-y"
                 />
                 <p className="text-xs text-muted-foreground">
