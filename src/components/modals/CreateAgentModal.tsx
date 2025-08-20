@@ -5,10 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
-import { X, Plus, Mic, Loader2, MessageSquare, Mic2 } from "lucide-react";
+import { X, Plus, Loader2, MessageSquare, Mic } from "lucide-react";
 import { agentAPI } from "@/pages/services/api";
 import { toast } from "sonner";
 import { AgentType } from "@/types/agent";
+import { VoiceSelector } from "@/components/ui/voice-selector";
 
 interface CreateAgentModalProps {
   isOpen: boolean;
@@ -18,19 +19,7 @@ interface CreateAgentModalProps {
 
 
 
-const voiceOptions = [
-  // VoiceCake voices (masking Hume)
-  { id: "Lee - Scott", name: "Lee Scott", provider: "voicecake" },
-  { id: "Adele - Young - British", name: "Adele Young British", provider: "voicecake" },
-  { id: "Steve - American", name: "Steve American", provider: "voicecake" },
-  { id: "Adam - British", name: "Adam - British", provider: "voicecake" },
-  { id: "Chloe - British", name: "Chloe British", provider: "voicecake" },
-  { id: "Veronica - Young - British", name: "Veronica Young British", provider: "voicecake" },
-  { id: "Lucy - Mature  - British", name: "Lucy Mature British", provider: "voicecake" },
-  { id: "Carol  - Mature - British", name: "Carol Mature British", provider: "voicecake" },
-  // Cartesia default voice
-  { id: "default", name: "Default Voice", provider: "cartesia" },
-];
+// Voice options are now managed in the centralized voiceConfig.ts file
 
 const modelOptions = [
   { provider: "VOICECAKE", simpleName: "voicecake STS", displayName: "VoiceCake STS" },
@@ -173,7 +162,7 @@ export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModal
                     onClick={() => setSelectedAgentType('SPEECH')}
                   >
                     <CardContent className="p-6 text-center">
-                      <Mic2 className="w-12 h-12 mx-auto mb-4 text-primary" />
+                      <Mic className="w-12 h-12 mx-auto mb-4 text-primary" />
                       <h4 className="font-semibold text-lg mb-2">Speech-To-Speech</h4>
                       <p className="text-muted-foreground text-sm">
                         Full voice conversation with AI. User speaks, AI responds with voice.
@@ -203,7 +192,7 @@ export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModal
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     {selectedAgentType === 'SPEECH' ? (
-                      <Mic2 className="w-5 h-5 text-primary" />
+                      <Mic className="w-5 h-5 text-primary" />
                     ) : (
                       <MessageSquare className="w-5 h-5 text-primary" />
                     )}
@@ -290,29 +279,12 @@ export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModal
                   </div>
 
                   {formData.voice_provider && (
-                    <div className="space-y-2">
-                      <Label>Voice</Label>
-                      <Select 
-                        value={formData.voice} 
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, voice: value }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a voice" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {voiceOptions
-                            .filter(voice => voice.provider === formData.voice_provider)
-                            .map((voice) => (
-                              <SelectItem key={voice.id} value={voice.id}>
-                                <div className="flex items-center gap-2">
-                                  <Mic className="w-4 h-4" />
-                                  {voice.name}
-                                </div>
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    <VoiceSelector
+                      value={formData.voice}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, voice: value }))}
+                      provider={formData.voice_provider}
+                      placeholder="Select a voice"
+                    />
                   )}
                 </div>
 

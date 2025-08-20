@@ -859,7 +859,7 @@ const useHumeInference = ({
 
           // Handle audio chunks with real-time streaming and quality preservation
           if (data.audio) {
-            // Detect and preserve the best audio format from Hume
+            // Detect and preserve the best audio format from VoiceCake
             const audioFormat = data.audio_format || data.format || 'audio/wav';
             const isHighQualityFormat = audioFormat.includes('webm') || audioFormat.includes('opus') || audioFormat.includes('mp3');
 
