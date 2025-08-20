@@ -119,14 +119,14 @@ export const humeVoices: VoiceOption[] = [
   { id: "Kora", name: "Kora", provider: "voicecake", category: "Character", description: "Simple character voice" },
   
   // Legacy voices (keeping for backward compatibility)
-  { id: "Lee - Scott", name: "Lee Scott", provider: "voicecake", category: "Legacy", description: "Classic male voice" },
-  { id: "Adele - Young - British", name: "Adele Young British", provider: "voicecake", category: "Legacy", description: "Young British female" },
-  { id: "Steve - American", name: "Steve American", provider: "voicecake", category: "Legacy", description: "American male voice" },
-  { id: "Adam - British", name: "Adam - British", provider: "voicecake", category: "Legacy", description: "British male voice" },
-  { id: "Chloe - British", name: "Chloe British", provider: "voicecake", category: "Legacy", description: "British female voice" },
-  { id: "Veronica - Young - British", name: "Veronica Young British", provider: "voicecake", category: "Legacy", description: "Young British female" },
-  { id: "Lucy - Mature  - British", name: "Lucy Mature British", provider: "voicecake", category: "Legacy", description: "Mature British female" },
-  { id: "Carol  - Mature - British", name: "Carol Mature British", provider: "voicecake", category: "Legacy", description: "Mature British female" },
+  // { id: "Lee - Scott", name: "Lee Scott", provider: "voicecake", category: "Legacy", description: "Classic male voice" },
+  // { id: "Adele - Young - British", name: "Adele Young British", provider: "voicecake", category: "Legacy", description: "Young British female" },
+  // { id: "Steve - American", name: "Steve American", provider: "voicecake", category: "Legacy", description: "American male voice" },
+  // { id: "Adam - British", name: "Adam - British", provider: "voicecake", category: "Legacy", description: "British male voice" },
+  // { id: "Chloe - British", name: "Chloe British", provider: "voicecake", category: "Legacy", description: "British female voice" },
+  // { id: "Veronica - Young - British", name: "Veronica Young British", provider: "voicecake", category: "Legacy", description: "Young British female" },
+  // { id: "Lucy - Mature  - British", name: "Lucy Mature British", provider: "voicecake", category: "Legacy", description: "Mature British female" },
+  // { id: "Carol  - Mature - British", name: "Carol Mature British", provider: "voicecake", category: "Legacy", description: "Mature British female" },
 ];
 
 // Cartesia voices
