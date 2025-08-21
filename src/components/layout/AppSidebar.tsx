@@ -1,4 +1,4 @@
-import { Bot, Settings, TestTube, Mic, Users, Home, KeyRound, Wrench } from "lucide-react";
+import { Bot, Settings, TestTube, Mic, Users, Home, KeyRound, Wrench, Menu, Grid3X3, User } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -14,12 +14,13 @@ import {
 } from "@/components/ui/sidebar";
 
 const menuItems = [
-  { title: "Dashboard", url: "/dashboard", icon: Home },
-  { title: "Agents", url: "/agents", icon: Bot },
-  { title: "Tools", url: "/tools", icon: Wrench },
-  { title: "Usage", url: "/usage", icon: Users },
-  { title: "Add-ons", url: "/addons", icon: Mic },
-  { title: "Settings", url: "/settings", icon: Settings },
+  { title: "Dashboard", url: "/dashboard", icon: "dashboard", isSvg: true },
+  { title: "Agents", url: "/agents", icon: "agent", isSvg: true },
+  { title: "Tools", url: "/tools", icon: Wrench, isSvg: false },
+  { title: "Usage", url: "/usage", icon: Users, isSvg: false },
+  { title: "Add-ons", url: "/addons", icon: Mic, isSvg: false },
+  { title: "API", url: "/api", icon: KeyRound, isSvg: false },
+  { title: "Settings", url: "/settings", icon: Settings, isSvg: false },
 ];
 
 export function AppSidebar() {
@@ -32,57 +33,114 @@ export function AppSidebar() {
     return location.pathname.startsWith(path);
   };
 
+  const renderIcon = (item: any) => {
+    if (item.isSvg) {
+      return (
+        <img 
+          src={`/${item.icon}.svg`} 
+          alt={item.title} 
+          className="w-6 h-6 flex-shrink-0"
+        />
+      );
+    } else {
+      const IconComponent = item.icon;
+      return <IconComponent className="w-6 h-6 flex-shrink-0 text-gray-500" />;
+    }
+  };
+
   return (
     <Sidebar 
       className={`transition-all duration-300 ease-in-out`}
       collapsible="icon"
       side="left"
     >
-      <SidebarContent className="bg-sidebar border-r border-sidebar-border">
+      <SidebarContent className="bg-white border-r border-gray-100 overflow-hidden">
         {/* Show only toggle button when collapsed */}
         {collapsed ? (
-          <div className="p-4 flex justify-center">
-            <SidebarTrigger className="text-sidebar-foreground hover:bg-gradient-to-br hover:from-teal-600 hover:via-teal-700 hover:to-emerald-700 hover:text-white transition-all duration-300" />
+          <div className="p-4 flex flex-col items-center w-full">
+            {/* Header with VoiceCake branding - logo only */}
+            <div className="mb-6 flex justify-center">
+              <img 
+                src="https://voicecake.vercel.app/assets/img/logo/voice-cake-logo-gradient.svg" 
+                alt="Voice Cake Logo" 
+                className="w-[46px] h-[31px] flex-shrink-0"
+              />
+            </div>
+
+            {/* Navigation Menu Icons */}
+            <SidebarGroup className="flex-1 w-full">
+              <SidebarGroupContent>
+                <SidebarMenu className="space-y-1 flex flex-col items-center">
+                  {menuItems.map((item) => (
+                    <SidebarMenuItem key={item.title} className="w-full flex justify-center">
+                      <SidebarMenuButton asChild>
+                        <NavLink
+                          to={item.url}
+                          className={`flex items-center justify-center p-3 rounded-[30px] transition-all duration-200 ${
+                            isActive(item.url) 
+                              ? "bg-[#CDFFF1] min-w-[45px] h-[45px]" 
+                              : "text-black hover:bg-gray-50 min-w-[45px] h-[45px]"
+                          }`}
+                          title={item.title}
+                        >
+                          {renderIcon(item)}
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            {/* Dotted horizontal line */}
+            <div className="w-full flex justify-center my-4">
+              <div className="w-12 h-px bg-gray-300 border-dashed border-t-2"></div>
+            </div>
+
+            {/* Profile Icon */}
+            <div className="w-full flex justify-center">
+              <div className="flex items-center justify-center p-3 rounded-full w-[45px] h-[45px] overflow-hidden">
+                <img 
+                  src="/profilee.svg" 
+                  alt="Profile" 
+                  className="w-full h-full rounded-full object-cover"
+                />
+              </div>
+            </div>
           </div>
         ) : (
           <>
-            {/* Header */}
-            <div className="p-4 border-b border-sidebar-border">
+            {/* Header with VoiceCake branding */}
+            <div className="p-4">
               <div className="flex items-center gap-3">
                 <img 
                   src="https://voicecake.vercel.app/assets/img/logo/voice-cake-logo-gradient.svg" 
                   alt="Voice Cake Logo" 
-                  className="w-8 h-8 flex-shrink-0"
+                  className="w-[46px] h-[31px] flex-shrink-0"
                 />
                 <div className="transition-all duration-300 ease-in-out overflow-hidden">
-                  <h2 className="font-bold text-sm text-theme-gradient whitespace-nowrap">Voice Cake</h2>
-                  <p className="text-xs text-sidebar-foreground/70 whitespace-nowrap">Voice Platform</p>
+                  <h2 className="font-inter font-semibold text-[15px] leading-[140%] tracking-[-0.02em] text-black whitespace-nowrap">Voice Cake</h2>
                 </div>
               </div>
             </div>
 
-            {/* Menu */}
+            {/* Navigation Menu */}
             <SidebarGroup className="flex-1">
-              <SidebarGroupLabel className="text-sidebar-foreground/70 transition-all duration-300 ease-in-out">
-                Main Menu
-              </SidebarGroupLabel>
               <SidebarGroupContent>
-                <SidebarMenu className="space-y-1 px-2">
+                <SidebarMenu className="space-y-1 px-2 py-4">
                   {menuItems.map((item) => (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton asChild>
                         <NavLink
                           to={item.url}
-                          className={({ isActive: navActive }) =>
-                            `flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${
-                              navActive
-                                ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-md"
-                                : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                            }`
-                          }
+                          className={`flex items-center gap-3 px-4 py-3 rounded-[30px] transition-all duration-200 ${
+                            isActive(item.url) 
+                              ? "bg-[#CDFFF1] min-w-[176px] h-[45px]" 
+                              : "text-black hover:bg-gray-50 min-w-[176px] h-[45px]"
+                          }`}
                         >
-                          <item.icon className="w-5 h-5 flex-shrink-0" />
-                          <span className="font-medium whitespace-nowrap">
+                          {renderIcon(item)}
+                          <span className="font-inter font-normal text-[15px] whitespace-nowrap">
                             {item.title}
                           </span>
                         </NavLink>
@@ -92,11 +150,6 @@ export function AppSidebar() {
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
-
-            {/* Footer with toggle */}
-            <div className="p-4 border-t border-sidebar-border">
-              <SidebarTrigger className="w-full text-sidebar-foreground hover:bg-gradient-to-br hover:from-teal-600 hover:via-teal-700 hover:to-emerald-700 hover:text-white transition-all duration-300" />
-            </div>
           </>
         )}
       </SidebarContent>

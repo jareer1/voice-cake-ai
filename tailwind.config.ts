@@ -23,6 +23,7 @@ export default {
 				'serif': ['Noto Serif', 'serif'],
 				'noto-serif': ['Noto Serif', 'serif'],
 				'roboto': ['Roboto', 'sans-serif'],
+				'inter': ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Arial', 'sans-serif'],
 			},
 			colors: {
 				border: 'hsl(var(--border))',

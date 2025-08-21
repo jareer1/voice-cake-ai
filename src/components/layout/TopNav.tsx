@@ -1,39 +1,65 @@
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { CreateAgentModal } from "@/components/modals/CreateAgentModal";
+import { useSidebar } from "@/components/ui/sidebar";
 
 export function TopNav() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { toggleSidebar } = useSidebar();
 
   return (
-    <header className="h-16 border-b border-border bg-card/50 backdrop-blur-md px-6 flex items-center justify-between">
-      <div className="flex items-center gap-4 flex-1">
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-          <Input 
-            placeholder="Search agents, tools..." 
-            className="pl-10 bg-background/50"
-          />
-        </div>
+    <header className="h-24 bg-white px-6 flex items-center justify-between">
+      {/* Left side - Menu icons */}
+      <div className="flex items-center gap-4">
+        <button 
+          className="text-gray-600 hover:bg-gray-100 hover:text-black transition-all duration-200 rounded-lg p-2"
+          onClick={toggleSidebar}
+        >
+          <img src="/menu-icon.svg" alt="Menu" className="w-6 h-6" />
+        </button>
+        <button className="text-gray-600 hover:bg-gray-100 hover:text-black transition-all duration-200 rounded-lg p-2">
+          <img src="/4-dots.svg" alt="Grid" className="w-6 h-6" />
+        </button>
       </div>
 
-      <div className="flex items-center gap-3 relative">
-        {/* Dummy Avatar with first letter from username */}
+      {/* Right side - Actions and user */}
+      <div className="flex items-center gap-3">
+        {/* Search icon */}
+        <button className="text-gray-600 hover:bg-gray-100 hover:text-black transition-all duration-200 rounded-lg p-2">
+          <img src="/searchh.svg" alt="Search" className="w-6 h-6" />
+        </button>
+
+        {/* Dark mode toggle */}
+        <button className="text-gray-600 hover:bg-gray-100 hover:text-black transition-all duration-200 rounded-lg p-2">
+          <img src="/moon.svg" alt="Dark Mode" className="w-6 h-6" />
+        </button>
+
+        {/* Messages */}
+        <button className="text-gray-600 hover:bg-gray-100 hover:text-black transition-all duration-200 rounded-lg p-2">
+          <img src="/inbox.svg" alt="Messages" className="w-6 h-6" />
+        </button>
+
+        {/* Notifications */}
+        <button className="text-gray-600 hover:bg-gray-100 hover:text-black transition-all duration-200 rounded-lg p-2">
+          <img src="/notification.svg" alt="Notifications" className="w-6 h-6" />
+        </button>
+
+        {/* User Avatar */}
         <button
-          className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-700 text-white font-bold flex items-center justify-center text-lg shadow-md focus:outline-none"
+          className="w-8 h-8 rounded-full overflow-hidden focus:outline-none"
           onClick={() => setIsMenuOpen((v) => !v)}
           aria-label="User menu"
         >
-          {localStorage.getItem('username')?.charAt(0)?.toUpperCase() || 'A'}
+          <img src="/profilee.svg" alt="Profile" className="w-full h-full object-cover" />
         </button>
+
         {/* Dropdown for logout */}
         {isMenuOpen && (
-          <div className="absolute right-0 mt-2 w-32 bg-white border border-border rounded-lg shadow-lg z-50">
+          <div className="absolute right-6 mt-2 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
             <button
-              className="w-full text-left px-4 py-2 text-foreground hover:bg-gray-100 rounded-lg"
+              className="w-full text-left px-4 py-2 text-black hover:bg-gray-100 rounded-lg font-inter text-base"
               onClick={() => {
                 localStorage.clear();
                 window.location.href = '/auth/signin';

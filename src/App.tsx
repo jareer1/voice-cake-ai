@@ -27,7 +27,7 @@ import Inference from "./pages/Inference";
 import PublicInference from "./pages/PublicInference";
 import LiveKitTest from "./pages/LiveKitTest";
 import Tools from "./pages/Tools";
-// import ApiKeys from "./pages/ApiKeys";
+import ApiKeys from "./pages/ApiKeys";
 
 const queryClient = new QueryClient();
 
@@ -128,13 +128,13 @@ const App = () => {
                   </AppLayout>
                 </ProtectedRoute>
               } />
-              {/* <Route path="/api-keys" element={
+              <Route path="/api" element={
                 <ProtectedRoute>
                   <AppLayout>
                     <ApiKeys />
                   </AppLayout>
                 </ProtectedRoute>
-              } /> */}
+              } />
               {/* Catch-all */}
               <Route path="*" element={<NotFound />} />
             </Routes>
