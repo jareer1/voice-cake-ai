@@ -671,28 +671,40 @@ const useHumeInference = ({
 
       // Use provided agent data or fetch agent details to determine the correct approach
       let agentInfo = null;
+      
+      // For public inference, we need to fetch the agent data if not already provided
       if (agentData) {
         // Use pre-fetched agent data (for public inference)
         agentInfo = agentData;
         setAgentDetails(agentInfo);
         console.log('📋 Using provided agent details:', agentInfo);
       } else {
-        // Fetch agent details using authenticated API
+        // Try to fetch agent data using public API first (for public inference)
         try {
-          agentInfo = await agentAPI.getAgent(currentAgentId);
+          console.log('🌐 Attempting to fetch agent data using public API...');
+          const publicAgentInfo = await publicAgentAPI.getAgent(currentAgentId);
+          agentInfo = publicAgentInfo;
           setAgentDetails(agentInfo);
-          console.log('📋 Agent details fetched:', agentInfo);
-        } catch (error) {
-          console.warn('Failed to fetch agent details, using default endpoint:', error);
-          // Continue with default endpoint if agent fetch fails
+          console.log('📋 Agent details fetched via public API:', agentInfo);
+        } catch (publicError) {
+          console.log('🔐 Public API failed, trying authenticated API...');
+          // Fall back to authenticated API
+          try {
+            agentInfo = await agentAPI.getAgent(currentAgentId);
+            setAgentDetails(agentInfo);
+            console.log('📋 Agent details fetched via authenticated API:', agentInfo);
+          } catch (error) {
+            console.warn('Failed to fetch agent details, using default endpoint:', error);
+            // Continue with default endpoint if agent fetch fails
+          }
         }
       }
       
-      const agentType = agentInfo?.agent_type || agentInfo?.type || 'SPEECH';
+      const agentType = (agentInfo?.agent_type || agentInfo?.type || 'SPEECH')?.toString()?.trim();
       console.log(`📡 Agent type detected: ${agentType}`);
 
       // For TEXT agents, use clean LiveKit session approach (like VoiceAssistant)
-      if (agentType === 'TEXT') {
+      if (agentType?.toUpperCase() === 'TEXT') {
         console.log('🔗 TEXT agent detected - using LiveKit session approach');
         
         let sessionData;
