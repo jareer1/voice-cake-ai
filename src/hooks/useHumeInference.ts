@@ -709,18 +709,16 @@ const useHumeInference = ({
         
         let sessionData;
         
-        // Use public API if agentData is provided (public inference), otherwise use authenticated API
-        if (agentData) {
-          console.log('🌐 Using public LiveKit session for public inference');
-          sessionData = await publicAgentAPI.createLiveKitSession(currentAgentId);
-        } else {
+        // Simple logic: if authToken exists, use private endpoint, otherwise use public endpoint
+        const authToken = localStorage.getItem('authToken');
+        if (authToken) {
           console.log('🔐 Using authenticated LiveKit session for private inference');
           // Start LiveKit session for TEXT agent (simplified - only agentId required)
           const response = await fetch(`${config.api.baseURL}/livekit/session/start`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+              'Authorization': `Bearer ${authToken}`
             },
             body: JSON.stringify({
               agent_id: currentAgentId,
@@ -734,6 +732,9 @@ const useHumeInference = ({
           }
 
           sessionData = await response.json();
+        } else {
+          console.log('🌐 Using public LiveKit session for public inference');
+          sessionData = await publicAgentAPI.createLiveKitSession(currentAgentId);
         }
         
         console.log('📋 LiveKit session created for TEXT agent:', sessionData);
