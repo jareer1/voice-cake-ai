@@ -105,6 +105,12 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     sessionStorage.removeItem('redirectCount');
   }
 
+  // Allow access to inference pages even without subscription (temporary)
+  if (location.pathname.startsWith('/inference')) {
+    console.log("ProtectedRoute: Allowing access to inference page without subscription");
+    return <>{children}</>;
+  }
+
   // If we're on a protected route and have active subscription, render children
   if (hasActiveSubscription) {
     console.log("ProtectedRoute: Has active subscription, rendering children");

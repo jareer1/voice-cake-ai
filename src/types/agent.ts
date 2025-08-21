@@ -1,6 +1,9 @@
 export type AgentType = 'SPEECH' | 'TEXT';
 
 export interface Agent {
+  voice_provider: string;
+  voice_id: string;
+  custom_instructions: string;
   id: number;
   name: string;
   description: string;
@@ -12,6 +15,7 @@ export interface Agent {
   model_provider?: string;
   type?: AgentType;
   agent_type?: AgentType;
+  tool_ids?: string[];
   
   // Optional fields for extended agent data (if needed)
   voice?: {

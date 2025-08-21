@@ -6,7 +6,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CreateAgentModal } from "@/components/modals/CreateAgentModal";
 import { EditAgentModal } from "@/components/modals/EditAgentModal";
-import { Plus, MoreHorizontal } from "lucide-react";
+import { ShareAgentModal } from "@/components/modals/ShareAgentModal";
+import { Plus, MoreHorizontal, Edit, Share2, Trash2, Play } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Agent } from "@/types/agent";
 import agentsService from "./services/agents";
 import { agentAPI } from "./services/api";
@@ -20,6 +27,7 @@ export default function Agents() {
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
 
   // Fetch agents from API
@@ -89,6 +97,16 @@ export default function Agents() {
     ));
   };
 
+  const handleShareAgent = (agent: Agent) => {
+    setSelectedAgent(agent);
+    setIsShareModalOpen(true);
+  };
+
+  const handleQuickTest = (agent: Agent) => {
+    // Navigate to the inference screen for testing
+    window.location.href = `/inference/${agent.id}`;
+  };
+
   return (
     <div className="space-y-6 animate-enter">
       {/* Header */}
@@ -142,13 +160,13 @@ export default function Agents() {
           <Table>
             <TableHeader>
               <TableRow className="border-b border-gray-200 bg-white">
-                <TableHead className="font-medium text-gray-700 py-6">Name</TableHead>
-                <TableHead className="font-medium text-gray-700 py-6">Type</TableHead>
-                <TableHead className="font-medium text-gray-700 py-6">Status</TableHead>
-                <TableHead className="font-medium text-gray-700 py-6">Voice</TableHead>
-                <TableHead className="font-medium text-gray-700 py-6">Number</TableHead>
-                <TableHead className="font-medium text-gray-700 py-6">Automation</TableHead>
-                <TableHead className="font-medium text-gray-700 py-6">Action</TableHead>
+                <TableHead className="font-medium text-gray-700 py-6 w-1/4">Name</TableHead>
+                <TableHead className="font-medium text-gray-700 py-6 w-1/6">Type</TableHead>
+                <TableHead className="font-medium text-gray-700 py-6 w-1/6">Status</TableHead>
+                <TableHead className="font-medium text-gray-700 py-6 w-1/6">Voice</TableHead>
+                <TableHead className="font-medium text-gray-700 py-6 w-1/6">Number</TableHead>
+                <TableHead className="font-medium text-gray-700 py-6 w-1/6">Automation</TableHead>
+                <TableHead className="font-medium text-gray-700 py-6 w-20">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -190,10 +208,10 @@ export default function Agents() {
                 filteredAgents.map((agent, index) => (
                   <TableRow key={agent.id} className="bg-background border-b border-gray-200">
                     <TableCell className="py-4">
-                      <div>
-                        <div className="font-medium text-gray-900">{agent.name}</div>
+                      <div className="max-w-xs">
+                        <div className="font-medium text-gray-900 truncate">{agent.name}</div>
                         {agent.description && (
-                          <div className="text-sm text-gray-500">{agent.description}</div>
+                          <div className="text-sm text-gray-500 truncate">{agent.description}</div>
                         )}
                       </div>
                     </TableCell>
@@ -217,9 +235,34 @@ export default function Agents() {
                       <span className="text-gray-700">$275</span>
                     </TableCell>
                     <TableCell className="py-4">
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleQuickTest(agent)}>
+                            <Play className="mr-2 h-4 w-4" />
+                            Quick Test
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEditAgent(agent)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleShareAgent(agent)}>
+                            <Share2 className="mr-2 h-4 w-4" />
+                            Share
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleDeleteAgent(agent)}
+                            className="text-red-600 focus:text-red-600"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))
@@ -248,6 +291,15 @@ export default function Agents() {
           setSelectedAgent(null);
         }}
         onSubmit={handleAgentUpdate}
+        agent={selectedAgent}
+      />
+      
+      <ShareAgentModal
+        isOpen={isShareModalOpen}
+        onClose={() => {
+          setIsShareModalOpen(false);
+          setSelectedAgent(null);
+        }}
         agent={selectedAgent}
       />
     </div>

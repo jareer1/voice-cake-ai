@@ -36,6 +36,7 @@ export const agentAPI = {
     model_provider: string;
     model_resource: string;
     agent_type: string;
+    tool_ids?: string[];
   }) => {
     const response = await api.post('/agents/', agentData);
     return response.data;
@@ -60,6 +61,7 @@ export const agentAPI = {
     model_provider: string;
     model_resource: string;
     agent_type: string;
+    tool_ids?: string[];
   }) => {
     const response = await api.put(`/agents/${id}`, agentData);
     return response.data;
@@ -67,6 +69,14 @@ export const agentAPI = {
   
   deleteAgent: async (id: string) => {
     const response = await api.delete(`/agents/${id}`);
+    return response.data;
+  }
+};
+
+// Tools API functions
+export const toolsAPI = {
+  getTools: async () => {
+    const response = await api.get('/tools/');
     return response.data;
   }
 };

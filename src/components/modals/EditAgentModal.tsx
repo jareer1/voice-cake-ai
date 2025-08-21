@@ -11,6 +11,7 @@ import { agentAPI } from "@/pages/services/api";
 import { toast } from "sonner";
 import { Agent } from "@/types/agent";
 import { VoiceSelector } from "@/components/ui/voice-selector";
+import { ToolSelector } from "@/components/ui/tool-selector";
 
 interface EditAgentModalProps {
   isOpen: boolean;
@@ -75,7 +76,8 @@ export function EditAgentModal({ isOpen, onClose, onSubmit, agent }: EditAgentMo
     voice: "",
     model_provider: "",
     model_resource: "",
-    instructions: ""
+    instructions: "",
+    tool_ids: [] as string[]
   });
   const [isLoading, setIsLoading] = useState(false);
   const [selectedAgentType, setSelectedAgentType] = useState<'SPEECH' | 'TEXT' | null>(null);
@@ -115,7 +117,8 @@ export function EditAgentModal({ isOpen, onClose, onSubmit, agent }: EditAgentMo
         voice: agent.voice_id || "",
         model_provider: agent.voice_provider || "",
         model_resource: agent.voice_id || "",
-        instructions: agent.custom_instructions || ""
+        instructions: agent.custom_instructions || "",
+        tool_ids: agent.tool_ids || []
       });
     }
   }, [agent]);
@@ -150,7 +153,8 @@ export function EditAgentModal({ isOpen, onClose, onSubmit, agent }: EditAgentMo
         custom_instructions: formData.instructions,
         model_provider: formData.model_provider,
         model_resource: formData.model_resource,
-        agent_type: agent.agent_type || agent.type || 'SPEECH'
+        agent_type: agent.agent_type || agent.type || 'SPEECH',
+        tool_ids: formData.tool_ids
       };
 
       const response = await agentAPI.updateAgent(agent.id.toString(), agentData);
@@ -358,6 +362,21 @@ Be specific to ensure the agent provides helpful and consistent responses.`
                 />
                 <p className="text-xs text-muted-foreground">
                   💡 Tip: The more detailed your instructions, the better the agent will perform. Include personality traits, response style, and specific guidelines.
+                </p>
+              </div>
+            </div>
+
+            {/* Tools Selection */}
+            <div className="space-y-4">
+              <h3 className="font-semibold text-lg">Tools & Capabilities</h3>
+              <div className="space-y-2">
+                <ToolSelector
+                  value={formData.tool_ids}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, tool_ids: value }))}
+                  placeholder="Select tools for this agent..."
+                />
+                <p className="text-xs text-muted-foreground">
+                  💡 Tip: Select tools that your agent can use to perform specific tasks. Tools will be available to the agent during conversations.
                 </p>
               </div>
             </div>

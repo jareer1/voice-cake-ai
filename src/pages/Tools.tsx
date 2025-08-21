@@ -60,7 +60,7 @@ export default function Tools() {
   const [editingTool, setEditingTool] = useState<Tool | null>(null);
   const [showForm, setShowForm] = useState(false);
 
-  console.log('Tools component rendered. showForm:', showForm);
+
 
   // Form states
   const [formData, setFormData] = useState<Tool>({
@@ -87,7 +87,7 @@ export default function Tools() {
   const [inputProperties, setInputProperties] = useState<SchemaProperty[]>([]);
   // Output properties removed - third-party tools handle their own response format
 
-  console.log('Current state - inputProperties:', inputProperties.length);
+
 
   // Load tools on component mount
   useEffect(() => {
@@ -101,7 +101,7 @@ export default function Tools() {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      console.log('Tools API response:', response.data);
+
       
       // Handle different response formats
       let toolsData = [];
@@ -116,7 +116,7 @@ export default function Tools() {
         toolsData = [];
       }
       
-      console.log('Parsed tools data:', toolsData);
+
       setTools(toolsData);
     } catch (error) {
       setError('Failed to load tools');
@@ -153,8 +153,6 @@ export default function Tools() {
   };
 
   const addInputProperty = () => {
-    console.log('Adding input property');
-    console.log('Current input properties:', inputProperties);
     
     const newProperty: SchemaProperty = {
       name: '',
@@ -164,7 +162,7 @@ export default function Tools() {
     };
 
     const updatedProperties = [...inputProperties, newProperty];
-    console.log('Setting input properties to:', updatedProperties);
+
     setInputProperties(updatedProperties);
   };
 
@@ -343,9 +341,6 @@ export default function Tools() {
     onUpdate: (index: number, field: keyof SchemaProperty, value: any) => void;
     onRemove: (index: number) => void;
   }> = ({ properties, type, onAdd, onUpdate, onRemove }) => {
-    console.log(`PropertyEditor rendered for ${type}:`, properties.length, 'properties');
-    
-    try {
       return (
         <div className="space-y-4 p-2 bg-gray-50 min-h-[200px]">
           <div className="flex items-center justify-between bg-white p-3 rounded border">
@@ -353,15 +348,7 @@ export default function Tools() {
               {type === 'input' ? 'Input' : 'Output'} Properties
             </h4>
             <Button 
-              onClick={() => {
-                console.log(`Adding ${type} property`);
-                try {
-                  onAdd();
-                  console.log(`${type} property added successfully`);
-                } catch (error) {
-                  console.error(`Error adding ${type} property:`, error);
-                }
-              }} 
+            onClick={onAdd}
               size="sm" 
               variant="outline"
               className="bg-blue-500 text-white hover:bg-blue-600"
@@ -371,32 +358,16 @@ export default function Tools() {
             </Button>
           </div>
 
-          <div className="bg-white p-3 rounded border">
-            <div className="text-sm text-gray-600 mb-2">
-              Debug Info: {properties.length} properties, type: {type}
-            </div>
-          </div>
-
-        {properties.map((property, index) => {
-          console.log(`Rendering property ${index} for ${type}:`, property);
-          return (
-            <Card key={`${type}-${index}`} className="p-4 border-2 border-blue-200">
+        {properties.map((property, index) => (
+          <Card key={`${type}-${index}`} className="p-4 border border-gray-200">
               <div className="space-y-4">
-                <div className="text-sm text-blue-600 font-mono">
-                  Debug: Property {index} - {property.name || 'unnamed'} ({property.type})
-                </div>
-                
                 <div className="grid grid-cols-1 gap-4">
                   <div className="space-y-2">
                     <Label>Property Name*</Label>
                     <Input
                       value={property.name}
-                      onChange={(e) => {
-                        console.log(`Updating property ${index} name to:`, e.target.value);
-                        onUpdate(index, 'name', e.target.value);
-                      }}
+                    onChange={(e) => onUpdate(index, 'name', e.target.value)}
                       placeholder="property_name"
-                      className="border-2 border-gray-300"
                     />
                   </div>
 
@@ -404,11 +375,8 @@ export default function Tools() {
                     <Label>Type*</Label>
                     <select
                       value={property.type}
-                      onChange={(e) => {
-                        console.log(`Updating property ${index} type to:`, e.target.value);
-                        onUpdate(index, 'type', e.target.value as any);
-                      }}
-                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-md"
+                    onChange={(e) => onUpdate(index, 'type', e.target.value as any)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
                     >
                       <option value="string">String</option>
                       <option value="number">Number</option>
@@ -422,12 +390,8 @@ export default function Tools() {
                     <Label>Description*</Label>
                     <Input
                       value={property.description}
-                      onChange={(e) => {
-                        console.log(`Updating property ${index} description to:`, e.target.value);
-                        onUpdate(index, 'description', e.target.value);
-                      }}
+                    onChange={(e) => onUpdate(index, 'description', e.target.value)}
                       placeholder="Property description"
-                      className="border-2 border-gray-300"
                     />
                   </div>
 
@@ -435,32 +399,25 @@ export default function Tools() {
                     <input
                       type="checkbox"
                       checked={property.required}
-                      onChange={(e) => {
-                        console.log(`Updating property ${index} required to:`, e.target.checked);
-                        onUpdate(index, 'required', e.target.checked);
-                      }}
+                    onChange={(e) => onUpdate(index, 'required', e.target.checked)}
                     />
                     <Label>Required</Label>
                   </div>
 
                   <div className="flex items-center space-x-2">
                     <Button
-                      onClick={() => {
-                        console.log(`Removing property ${index}`);
-                        onRemove(index);
-                      }}
+                    onClick={() => onRemove(index)}
                       variant="destructive"
                       size="sm"
                     >
                       <Trash2 className="w-4 h-4 mr-2" />
-                      Remove Property {index}
+                    Remove Property
                     </Button>
-                  </div>
+                </div>
                 </div>
               </div>
             </Card>
-          );
-        })}
+        ))}
 
         {properties.length === 0 && (
           <div className="text-center py-8 text-muted-foreground bg-white p-4 rounded border">
@@ -469,24 +426,6 @@ export default function Tools() {
         )}
         </div>
       );
-    } catch (error) {
-      console.error(`PropertyEditor render error for ${type}:`, error);
-      return (
-        <div className="p-4 bg-red-50 border border-red-200 rounded">
-          <h4 className="text-red-800 font-medium">Error rendering PropertyEditor</h4>
-          <p className="text-red-600 text-sm mt-1">
-            {error instanceof Error ? error.message : 'Unknown error'}
-          </p>
-          <Button 
-            onClick={onAdd} 
-            className="mt-2"
-            variant="outline"
-          >
-            Try Add Property
-          </Button>
-        </div>
-      );
-    }
   };
 
   return (
@@ -502,7 +441,6 @@ export default function Tools() {
           </div>
           <Button 
             onClick={() => {
-              console.log('Create Tool button clicked');
               setError(null);
               setSuccess(null);
               setShowForm(true);
@@ -726,29 +664,6 @@ export default function Tools() {
                 </TabsContent>
 
                 <TabsContent value="input" className="space-y-6">
-                  <div className="p-4 border border-gray-200 rounded bg-green-50">
-                    <div className="mb-4 p-2 bg-blue-100 rounded">
-                      <h3 className="font-bold text-blue-800">Input Schema Tab Debug</h3>
-                      <p className="text-sm text-blue-600">
-                        Input properties count: {inputProperties.length}
-                      </p>
-                      <p className="text-sm text-blue-600">
-                        Properties: {JSON.stringify(inputProperties)}
-                      </p>
-                    </div>
-                    
-                    <div className="mb-4 p-2 bg-yellow-100 rounded">
-                      <Button 
-                        onClick={() => {
-                          console.log('Direct test button clicked');
-                          addInputProperty();
-                        }}
-                        className="bg-yellow-500 text-white"
-                      >
-                        Direct Test Add Property
-                      </Button>
-                    </div>
-                    
                     <PropertyEditor
                       properties={inputProperties}
                       type="input"
@@ -756,7 +671,6 @@ export default function Tools() {
                       onUpdate={(index, field, value) => updateInputProperty(index, field, value)}
                       onRemove={(index) => removeInputProperty(index)}
                     />
-                  </div>
                 </TabsContent>
 
 

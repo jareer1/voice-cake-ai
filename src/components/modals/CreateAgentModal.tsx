@@ -10,6 +10,7 @@ import { agentAPI } from "@/pages/services/api";
 import { toast } from "sonner";
 import { AgentType } from "@/types/agent";
 import { VoiceSelector } from "@/components/ui/voice-selector";
+import { ToolSelector } from "@/components/ui/tool-selector";
 
 interface CreateAgentModalProps {
   isOpen: boolean;
@@ -76,7 +77,8 @@ export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModal
     voice: "",
     model_provider: "",
     model_resource: "",
-    instructions: ""
+    instructions: "",
+    tool_ids: [] as string[]
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -114,7 +116,8 @@ export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModal
         custom_instructions: formData.instructions,
         model_provider: formData.model_provider,
         model_resource: formData.model_resource,
-        agent_type: selectedAgentType!
+        agent_type: selectedAgentType!,
+        tool_ids: formData.tool_ids
       };
 
       const response = await agentAPI.createAgent(agentData);
@@ -368,6 +371,23 @@ Be specific to ensure the agent provides helpful and consistent responses.`
                   />
                   <p className="text-xs text-muted-foreground">
                     💡 Tip: The more detailed your instructions, the better the agent will perform. Include personality traits, response style, and specific guidelines.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Tools Selection - Always shown when agent type is selected */}
+            {selectedAgentType && (
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg">Tools & Capabilities</h3>
+                <div className="space-y-2">
+                  <ToolSelector
+                    value={formData.tool_ids}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, tool_ids: value }))}
+                    placeholder="Select tools for this agent..."
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    💡 Tip: Select tools that your agent can use to perform specific tasks. Tools will be available to the agent during conversations.
                   </p>
                 </div>
               </div>

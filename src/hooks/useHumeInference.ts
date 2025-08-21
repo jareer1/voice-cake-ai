@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import config from "@/lib/config";
 import { agentAPI } from "@/pages/services/api";
+import { publicAgentAPI } from "@/pages/services/publicApi";
 import { Room, RoomEvent, Track, RemoteAudioTrack, RemoteParticipant } from 'livekit-client';
 
 export const INFERENCE_STATES = {
@@ -694,25 +695,35 @@ const useHumeInference = ({
       if (agentType === 'TEXT') {
         console.log('🔗 TEXT agent detected - using LiveKit session approach');
         
-        // Start LiveKit session for TEXT agent (simplified - only agentId required)
-        const response = await fetch(`${config.api.baseURL}/livekit/session/start`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-          },
-          body: JSON.stringify({
-            agent_id: currentAgentId,
-            participant_name: `User_${Date.now()}` // Auto-generated participant name
-          }),
-        });
+        let sessionData;
+        
+        // Use public API if agentData is provided (public inference), otherwise use authenticated API
+        if (agentData) {
+          console.log('🌐 Using public LiveKit session for public inference');
+          sessionData = await publicAgentAPI.createLiveKitSession(currentAgentId);
+        } else {
+          console.log('🔐 Using authenticated LiveKit session for private inference');
+          // Start LiveKit session for TEXT agent (simplified - only agentId required)
+          const response = await fetch(`${config.api.baseURL}/livekit/session/start`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+            },
+            body: JSON.stringify({
+              agent_id: currentAgentId,
+              participant_name: `User_${Date.now()}` // Auto-generated participant name
+            }),
+          });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.detail || 'Failed to start LiveKit session for TEXT agent');
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Failed to start LiveKit session for TEXT agent');
+          }
+
+          sessionData = await response.json();
         }
-
-        const sessionData = await response.json();
+        
         console.log('📋 LiveKit session created for TEXT agent:', sessionData);
         setSessionData(sessionData);
         
@@ -749,7 +760,7 @@ const useHumeInference = ({
             sampleSize: 16, // 16-bit audio depth
             echoCancellation: true,
             noiseSuppression: true,
-            autoGainControl: true
+            autoGainControl: false   // <- turn off AGC
           }
         });
         
