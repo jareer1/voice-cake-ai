@@ -241,7 +241,9 @@ export function AgentTestInterface({ agent, onClose }: AgentTestInterfaceProps) 
             <div className="space-y-3">
               <div>
                 <h4 className="text-sm font-medium text-muted-foreground">Voice Provider</h4>
-                <p className="text-sm capitalize">{agent.voice.provider}</p>
+                <p className="text-sm capitalize">
+                  {agent.voice.provider === "hume" ? "VoiceCake" : agent.voice.provider}
+                </p>
               </div>
               
               <div>

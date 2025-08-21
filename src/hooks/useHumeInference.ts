@@ -28,6 +28,7 @@ const useHumeInference = ({
   const [isConnected, setIsConnected] = useState(false);
   const [agentDetails, setAgentDetails] = useState<any>(null);
   const [sessionData, setSessionData] = useState<any>(null);
+  const [hasPermissions, setHasPermissions] = useState(false);
   
   // WebSocket and Media Stream refs (for SPEECH agents)
   const socketRef = useRef<WebSocket | null>(null);
@@ -437,6 +438,13 @@ const useHumeInference = ({
     }
   }, [initializeAudioContext]);
 
+  // Function to clear cached permissions (useful for testing or when permissions change)
+  const clearCachedPermissions = useCallback(() => {
+    localStorage.removeItem('microphonePermission');
+    setHasPermissions(false);
+    console.log('🧹 Cached microphone permissions cleared');
+  }, []);
+
   // Cleanup function
   const cleanup = useCallback(() => {
     console.log('🧹 Starting enhanced cleanup');
@@ -508,6 +516,7 @@ const useHumeInference = ({
     shouldInterruptRef.current = false;
     isPlayingRef.current = false;
     isUserSpeakingRef.current = false;
+    setHasPermissions(false);
 
     console.log('✅ Cleanup completed');
   }, [executeImmediateInterruption, stopSpeechDetection]);
@@ -530,8 +539,9 @@ const useHumeInference = ({
 
         // Enable microphone for user input detection
         try {
-          await room.localParticipant.enableCameraAndMicrophone();
-          console.log('🎤 Microphone enabled for TEXT agent user input');
+          await room.localParticipant.setMicrophoneEnabled(true);
+          setHasPermissions(true);
+          console.log('🎤 Microphone enabled for TEXT agent user input (audio only)');
           
           // Start real-time speaking detection for TEXT agent
           const audioTracks = room.localParticipant.audioTrackPublications;
@@ -543,7 +553,9 @@ const useHumeInference = ({
             }
           }
         } catch (error) {
-          console.warn('⚠️ Could not enable microphone for TEXT agent:', error);
+          console.error('❌ Failed to enable microphone for TEXT agent:', error);
+          setHasPermissions(false);
+          throw new Error('Failed to enable microphone for TEXT agent');
         }
       });
 
@@ -717,17 +729,40 @@ const useHumeInference = ({
       // For SPEECH agents, continue with the existing WebSocket approach
       console.log('🔗 SPEECH agent detected - using WebSocket approach');
       
-      // Get microphone access with high-quality audio settings
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          channelCount: 1,
-          sampleRate: 48000, // High sample rate for crisp input
-          sampleSize: 16, // 16-bit audio depth
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        }
-      });
+      // Get microphone access with high-quality audio settings and permission caching
+      let stream: MediaStream;
+      
+      // Check if we already have permission cached
+      const cachedPermission = localStorage.getItem('microphonePermission');
+      if (cachedPermission === 'granted') {
+        console.log('🎤 Using cached microphone permission for SPEECH agent');
+        setHasPermissions(true);
+      } else {
+        console.log('🎤 Requesting microphone permission for SPEECH agent...');
+      }
+      
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          audio: {
+            channelCount: 1,
+            sampleRate: 48000, // High sample rate for crisp input
+            sampleSize: 16, // 16-bit audio depth
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        });
+        
+        // Cache the permission status and update state
+        localStorage.setItem('microphonePermission', 'granted');
+        setHasPermissions(true);
+        console.log('✅ Microphone permission granted and cached for SPEECH agent');
+      } catch (error) {
+        console.error('❌ Failed to get microphone permission:', error);
+        setHasPermissions(false);
+        localStorage.removeItem('microphonePermission');
+        throw new Error('Microphone permission denied. Please allow microphone access to use the voice assistant.');
+      }
 
       mediaStreamRef.current = stream;
 
@@ -824,7 +859,7 @@ const useHumeInference = ({
 
           // Handle audio chunks with real-time streaming and quality preservation
           if (data.audio) {
-            // Detect and preserve the best audio format from Hume
+            // Detect and preserve the best audio format from VoiceCake
             const audioFormat = data.audio_format || data.format || 'audio/wav';
             const isHighQualityFormat = audioFormat.includes('webm') || audioFormat.includes('opus') || audioFormat.includes('mp3');
 
@@ -990,6 +1025,7 @@ const useHumeInference = ({
     setIsLoading(false);
     setIsMicOn(true);
     setIsConnected(false);
+    setHasPermissions(false);
     toast.success("Inference stopped");
 
   }, [cleanup, agentDetails, sessionData]);
@@ -1050,9 +1086,11 @@ const useHumeInference = ({
     isMicOn,
     isConnected,
     isUserSpeaking: isUserSpeakingRef.current,
+    hasPermissions,
     startInference,
     stopInference,
     toggleMic,
+    clearCachedPermissions,
     sessionData, // Expose session data for TEXT agents
     mediaStream: mediaStreamRef.current,
   };

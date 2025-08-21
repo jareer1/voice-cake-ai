@@ -349,7 +349,9 @@ export default function AgentTest() {
               
               <div>
                 <h4 className="text-sm font-medium text-muted-foreground mb-1">Voice Provider</h4>
-                <p className="text-sm capitalize">{agent.voice.provider}</p>
+                <p className="text-sm capitalize">
+                  {agent.voice.provider === "hume" ? "VoiceCake" : agent.voice.provider}
+                </p>
               </div>
               
               <div>

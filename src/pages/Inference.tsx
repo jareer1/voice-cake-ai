@@ -85,7 +85,7 @@ const Inference = () => {
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold">Voice AI Inference</h1>
           <p className="text-muted-foreground">
-            Connect with Hume's voice AI for real-time conversation
+            Connect with VoiceCake's voice AI for real-time conversation
           </p>
         </div>
 
