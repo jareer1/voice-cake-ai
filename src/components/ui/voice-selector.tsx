@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -6,6 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGr
 import { Badge } from "@/components/ui/badge";
 import { Mic, Search, Filter } from "lucide-react";
 import { VoiceOption, getVoicesByProvider, getCategoriesByProvider, searchVoices } from "@/lib/voiceConfig";
+import { voiceCloneAPI } from "@/pages/services/api";
+import type { VoiceCloneResponse } from "@/types/voice";
 
 interface VoiceSelectorProps {
   value: string;
@@ -15,6 +17,16 @@ interface VoiceSelectorProps {
   disabled?: boolean;
   className?: string;
 }
+
+// Transform voice clone API response to VoiceOption
+const transformVoiceClone = (voiceClone: VoiceCloneResponse): VoiceOption => ({
+  id: voiceClone.provider_voice_id,
+  name: voiceClone.name,
+  provider: voiceClone.provider || "custom",
+  category: "Custom Clones",
+  description: voiceClone.description || "Custom cloned voice",
+  language: voiceClone.language,
+});
 
 export function VoiceSelector({ 
   value, 
@@ -26,12 +38,50 @@ export function VoiceSelector({
 }: VoiceSelectorProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [clonedVoices, setClonedVoices] = useState<VoiceOption[]>([]);
+  const [isLoadingClones, setIsLoadingClones] = useState(false);
 
-  // Get all voices for the provider
-  const allProviderVoices = useMemo(() => getVoicesByProvider(provider), [provider]);
+  // Get static voices for the provider
+  const staticVoices = useMemo(() => getVoicesByProvider(provider), [provider]);
+
+  // Reset filters when provider changes
+  useEffect(() => {
+    setSearchTerm("");
+    setSelectedCategory("all");
+  }, [provider]);
+
+  // Fetch voice clones on mount
+  useEffect(() => {
+    const fetchVoiceClones = async () => {
+      setIsLoadingClones(true);
+      try {
+        const voiceClones = await voiceCloneAPI.getVoiceClones();
+        const transformedClones = voiceClones.map(transformVoiceClone);
+        setClonedVoices(transformedClones);
+      } catch (error) {
+        console.error('Error fetching voice clones:', error);
+        setClonedVoices([]);
+      } finally {
+        setIsLoadingClones(false);
+      }
+    };
+
+    fetchVoiceClones();
+  }, []);
+
+  // Combine static and cloned voices
+  const allProviderVoices = useMemo(() => {
+    if (provider === "custom") {
+      return clonedVoices;
+    }
+    return [...staticVoices, ...clonedVoices];
+  }, [staticVoices, clonedVoices, provider]);
   
-  // Get categories for the provider
-  const categories = useMemo(() => getCategoriesByProvider(provider), [provider]);
+  // Get categories for all voices
+  const categories = useMemo(() => {
+    const allCategories = allProviderVoices.map(voice => voice.category).filter(Boolean);
+    return [...new Set(allCategories)];
+  }, [allProviderVoices]);
   
   // Filter voices based on search and category
   const filteredVoices = useMemo(() => {
@@ -44,13 +94,16 @@ export function VoiceSelector({
     
     // Filter by search term
     if (searchTerm.trim()) {
-      voices = searchVoices(provider, searchTerm).filter(voice => 
-        selectedCategory === "all" || voice.category === selectedCategory
+      const term = searchTerm.toLowerCase();
+      voices = voices.filter(voice => 
+        voice.name.toLowerCase().includes(term) ||
+        voice.description?.toLowerCase().includes(term) ||
+        voice.category?.toLowerCase().includes(term)
       );
     }
     
     return voices;
-  }, [allProviderVoices, selectedCategory, searchTerm, provider]);
+  }, [allProviderVoices, selectedCategory, searchTerm]);
 
   // Group voices by category for display
   const groupedVoices = useMemo(() => {
@@ -163,6 +216,7 @@ export function VoiceSelector({
         {filteredVoices.length} of {allProviderVoices.length} voices
         {searchTerm && ` matching "${searchTerm}"`}
         {selectedCategory !== "all" && ` in ${selectedCategory}`}
+        {isLoadingClones && " (loading custom voices...)"}
       </div>
     </div>
   );

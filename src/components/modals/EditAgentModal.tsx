@@ -110,16 +110,31 @@ export function EditAgentModal({ isOpen, onClose, onSubmit, agent }: EditAgentMo
       const agentType = agent.agent_type || agent.type || 'SPEECH';
       setSelectedAgentType(agentType as 'SPEECH' | 'TEXT');
       
-      setFormData({
+      const newFormData = {
         name: agent.name || "",
         description: agent.description || "",
         voice_provider: voiceProvider,
         voice: agent.voice_id || "",
-        model_provider: agent.voice_provider || "",
-        model_resource: agent.voice_id || "",
+        model_provider: agent.model_provider || "",
+        model_resource: (agent as Agent & { model_resource?: string }).model_resource || "",
         instructions: agent.custom_instructions || "",
         tool_ids: agent.tool_ids || []
+      };
+      
+      setFormData(newFormData);
+    } else {
+      // Reset form data when no agent is provided
+      setFormData({
+        name: "",
+        description: "",
+        voice_provider: "",
+        voice: "",
+        model_provider: "",
+        model_resource: "",
+        instructions: "",
+        tool_ids: []
       });
+      setSelectedAgentType(null);
     }
   }, [agent]);
 
