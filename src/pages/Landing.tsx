@@ -215,7 +215,7 @@ export default function Landing() {
                 🎯 Test Drive
               </Badge>
               <h2 className="text-3xl sm:text-4xl font-noto-serif-bold">
-                Experience AI Voice Technology
+                Experience AI Voice Technologies
               </h2>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
                 Try our customer support agent for free. No signup required - 
