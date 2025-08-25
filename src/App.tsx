@@ -36,13 +36,13 @@ const App = () => {
     <AuthProvider>
     <QueryClientProvider client={queryClient}>
       <FinanceProvider>
-        <TooltipProvider>
+        <TooltipProvider> 
           <Toaster />
           <Sonner />
           <BrowserRouter>
             <Routes>
               {/* Landing and marketing pages */}
-              <Route path="/" element={<Landing />} />
+              <Route path="/" element={<Landing />} /> 
               <Route path="/landing" element={<Landing />} />
               {/* Public purchase flow */}
               <Route path="/plan-selection" element={<PlanSelection />} />

@@ -110,16 +110,31 @@ export function EditAgentModal({ isOpen, onClose, onSubmit, agent }: EditAgentMo
       const agentType = agent.agent_type || agent.type || 'SPEECH';
       setSelectedAgentType(agentType as 'SPEECH' | 'TEXT');
       
-      setFormData({
+      const newFormData = {
         name: agent.name || "",
         description: agent.description || "",
         voice_provider: voiceProvider,
         voice: agent.voice_id || "",
-        model_provider: agent.voice_provider || "",
-        model_resource: agent.voice_id || "",
+        model_provider: agent.model_provider || "",
+        model_resource: (agent as Agent & { model_resource?: string }).model_resource || "",
         instructions: agent.custom_instructions || "",
         tool_ids: agent.tool_ids || []
+      };
+      
+      setFormData(newFormData);
+    } else {
+      // Reset form data when no agent is provided
+      setFormData({
+        name: "",
+        description: "",
+        voice_provider: "",
+        voice: "",
+        model_provider: "",
+        model_resource: "",
+        instructions: "",
+        tool_ids: []
       });
+      setSelectedAgentType(null);
     }
   }, [agent]);
 
@@ -127,6 +142,12 @@ export function EditAgentModal({ isOpen, onClose, onSubmit, agent }: EditAgentMo
     e.preventDefault();
     
     if (!agent) return;
+    
+    // Validate description length
+    if (formData.description.length > 1500) {
+      toast.error("Description cannot exceed 1,500 characters");
+      return;
+    }
     
     // Validate required fields based on agent type
     if (selectedAgentType === 'SPEECH') {
@@ -220,6 +241,7 @@ export function EditAgentModal({ isOpen, onClose, onSubmit, agent }: EditAgentMo
               
               <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
+                <div className="space-y-1">
                 <Textarea
                   id="description"
                   placeholder="Describe what this agent does and how it helps users..."
@@ -227,7 +249,19 @@ export function EditAgentModal({ isOpen, onClose, onSubmit, agent }: EditAgentMo
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   rows={3}
                   required
-                />
+                    maxLength={1500}
+                  />
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground">
+                      {formData.description.length}/1,500 characters
+                    </span>
+                    {formData.description.length > 1400 && (
+                      <span className="text-xs text-orange-500">
+                        {1500 - formData.description.length} characters remaining
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 

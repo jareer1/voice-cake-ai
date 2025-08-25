@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -82,12 +82,35 @@ export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModal
   });
   const [isLoading, setIsLoading] = useState(false);
 
+  // Reset form when modal is opened
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedAgentType(null);
+      setFormData({
+        name: "",
+        description: "",
+        voice_provider: "",
+        voice: "",
+        model_provider: "",
+        model_resource: "",
+        instructions: "",
+        tool_ids: []
+      });
+    }
+  }, [isOpen]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validate agent type selection
     if (!selectedAgentType) {
       toast.error("Please select an agent type");
+      return;
+    }
+    
+    // Validate description length
+    if (formData.description.length > 1500) {
+      toast.error("Description cannot exceed 1,500 characters");
       return;
     }
     
@@ -133,6 +156,22 @@ export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModal
     }
   };
 
+  const handleClose = () => {
+    // Reset form data when closing
+    setSelectedAgentType(null);
+    setFormData({
+      name: "",
+      description: "",
+      voice_provider: "",
+      voice: "",
+      model_provider: "",
+      model_resource: "",
+      instructions: "",
+      tool_ids: []
+    });
+    onClose();
+  };
+
 
 
   if (!isOpen) return null;
@@ -143,7 +182,7 @@ export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModal
         <CardHeader className="border-b border-border">
           <div className="flex items-center justify-between">
             <CardTitle className="text-2xl">Create New Agent</CardTitle>
-            <Button variant="ghost" size="icon" onClick={onClose}>
+            <Button variant="ghost" size="icon" onClick={handleClose}>
               <X className="w-5 h-5" />
             </Button>
           </div>
@@ -230,14 +269,27 @@ export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModal
                   
                   <div className="space-y-2">
                     <Label htmlFor="description">Description</Label>
-                    <Textarea
-                      id="description"
-                      placeholder="Describe what this agent does and how it helps users..."
-                      value={formData.description}
-                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                      rows={3}
-                      required
-                    />
+                    <div className="space-y-1">
+                      <Textarea
+                        id="description"
+                        placeholder="Describe what this agent does and how it helps users..."
+                        value={formData.description}
+                        onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                        rows={3}
+                        required
+                        maxLength={1500}
+                      />
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-muted-foreground">
+                          {formData.description.length}/1,500 characters
+                        </span>
+                        {formData.description.length > 1400 && (
+                          <span className="text-xs text-orange-500">
+                            {1500 - formData.description.length} characters remaining
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </>
@@ -399,7 +451,7 @@ Be specific to ensure the agent provides helpful and consistent responses.`
                 <Button 
                   type="button" 
                   variant="outline" 
-                  onClick={onClose} 
+                  onClick={handleClose} 
                   className="flex-1"
                   disabled={isLoading}
                 >
