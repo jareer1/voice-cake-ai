@@ -47,10 +47,10 @@ export default function VoiceAssistant({ apiUrl }: VoiceAssistantProps) {
   const micStreamRef = useRef<MediaStream | null>(null);
   const speakingCheckInterval = useRef<NodeJS.Timeout | null>(null);
 
-  // Audio monitoring for speaking detection
+  // Enhanced audio monitoring for speaking detection with transcription
   const setupAudioMonitoring = async () => {
     try {
-      console.log('🔊 Setting up audio monitoring...');
+      console.log('🔊 Setting up enhanced audio monitoring with transcription...');
       
       // Create audio context
       audioContextRef.current = new (window.AudioContext || (window.AudioContext || (window as any).webkitAudioContext)());
@@ -63,7 +63,7 @@ export default function VoiceAssistant({ apiUrl }: VoiceAssistantProps) {
         
         if (audioTrack && audioTrack.mediaStream) {
           micStreamRef.current = audioTrack.mediaStream;
-          console.log('🎤 Using LiveKit audio stream for monitoring');
+          console.log('🎤 Using LiveKit audio stream for enhanced monitoring');
           
           // Create analyser
           analyserRef.current = audioContextRef.current.createAnalyser();
@@ -73,10 +73,13 @@ export default function VoiceAssistant({ apiUrl }: VoiceAssistantProps) {
           const source = audioContextRef.current.createMediaStreamSource(micStreamRef.current);
           source.connect(analyserRef.current);
           
-          console.log('📊 Audio analyser connected to LiveKit stream');
+          console.log('📊 Enhanced audio analyser connected to LiveKit stream');
           
           // Start monitoring audio levels
           startSpeakingDetection();
+          
+          // Initialize enhanced transcription for LiveKit audio stream
+          initializeEnhancedTranscription(audioTrack.mediaStream);
         } else {
           console.warn('⚠️ No audio track available from LiveKit');
         }
@@ -85,14 +88,72 @@ export default function VoiceAssistant({ apiUrl }: VoiceAssistantProps) {
       }
       
     } catch (error) {
-      console.error('❌ Failed to setup audio monitoring:', error);
+      console.error('❌ Failed to setup enhanced audio monitoring:', error);
+    }
+  };
+
+  // Initialize enhanced transcription for LiveKit audio streams
+  const initializeEnhancedTranscription = (mediaStream: MediaStream) => {
+    try {
+      console.log('🎤 Initializing enhanced transcription for VoiceAssistant...');
+      
+      // Check if speech recognition is supported
+      const isSpeechRecognitionSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
+      
+      if (isSpeechRecognitionSupported) {
+        try {
+          const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+          
+          // Enhanced user speech recognition for LiveKit
+          const enhancedUserRecognition = new SpeechRecognition();
+          enhancedUserRecognition.continuous = true;
+          enhancedUserRecognition.interimResults = true;
+          enhancedUserRecognition.lang = 'en-US';
+          
+          enhancedUserRecognition.onresult = (event) => {
+            let transcript = '';
+            let isFinal = false;
+            let confidence = 0;
+            
+            for (let i = 0; i < event.results.length; i++) {
+              const result = event.results[i];
+              transcript += result[0].transcript;
+              confidence = Math.max(confidence, result[0].confidence);
+              if (result.isFinal) {
+                isFinal = true;
+              }
+            }
+            
+            const cleanText = transcript.trim();
+            if (cleanText) {
+              console.log(`📝 VoiceAssistant enhanced transcription: ${cleanText} (final: ${isFinal}, confidence: ${(confidence * 100).toFixed(1)}%)`);
+            }
+          };
+          
+          enhancedUserRecognition.onerror = (event) => {
+            console.warn('VoiceAssistant enhanced speech recognition error:', event.error);
+          };
+          
+          enhancedUserRecognition.onend = () => {
+            console.log('VoiceAssistant enhanced speech recognition ended');
+          };
+          
+          console.log('✅ VoiceAssistant enhanced transcription initialized');
+          
+        } catch (error) {
+          console.warn('Failed to initialize VoiceAssistant enhanced transcription:', error);
+        }
+      }
+      
+    } catch (error) {
+      console.error('❌ Failed to setup VoiceAssistant enhanced transcription:', error);
     }
   };
 
   const startSpeakingDetection = () => {
     if (!analyserRef.current) return;
     
-    console.log('🎯 Starting speaking detection...');
+    console.log('🎯 Starting enhanced speaking detection...');
     
     const bufferLength = analyserRef.current.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);

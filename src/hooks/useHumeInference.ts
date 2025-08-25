@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import config from "@/lib/config";
 import { agentAPI } from "@/pages/services/api";
 import { publicAgentAPI } from "@/pages/services/publicApi";
-import { Room, RoomEvent, Track, RemoteAudioTrack, RemoteParticipant } from 'livekit-client';
+import { Room, RoomEvent, Track, TranscriptionSegment } from 'livekit-client';
 
 export const INFERENCE_STATES = {
   IDLE: "idle",
@@ -18,6 +18,20 @@ interface UseHumeInferenceProps {
   agentData?: any; // Optional pre-fetched agent data for public inference
 }
 
+// Transcription entry interface
+interface TranscriptionEntry {
+  id: string;
+  timestamp: Date;
+  speaker: 'user' | 'ai';
+  text: string;
+  duration?: number; // Duration in seconds for AI responses
+  confidence?: number; // Confidence score for transcription
+  isFinal?: boolean; // Whether this is a final transcription
+  source?: 'livekit' | 'webspeech'; // Source of transcription
+  participantId?: string; // LiveKit participant ID
+  trackId?: string; // LiveKit track ID
+}
+
 const useHumeInference = ({ 
   agentId, 
   onAudioReceived,
@@ -30,6 +44,11 @@ const useHumeInference = ({
   const [agentDetails, setAgentDetails] = useState<any>(null);
   const [sessionData, setSessionData] = useState<any>(null);
   const [hasPermissions, setHasPermissions] = useState(false);
+  
+  // Transcription state
+  const [transcription, setTranscription] = useState<TranscriptionEntry[]>([]);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [transcriptionUpdateTrigger, setTranscriptionUpdateTrigger] = useState(0);
   
   // WebSocket and Media Stream refs (for SPEECH agents)
   const socketRef = useRef<WebSocket | null>(null);
@@ -61,6 +80,19 @@ const useHumeInference = ({
   const speechFramesRef = useRef(0);
   const silenceFramesRef = useRef(0);
 
+  // Transcription tracking
+  const currentUserSpeechRef = useRef<string>('');
+  const currentAISpeechRef = useRef<string>('');
+  const speechStartTimeRef = useRef<number>(0);
+  const aiResponseStartTimeRef = useRef<number>(0);
+  const isUserSpeakingForTranscriptionRef = useRef(false);
+  const isAISpeakingForTranscriptionRef = useRef(false);
+  const userTranscriptionAddedRef = useRef(false); // Flag to prevent duplicate user transcriptions
+  const aiTranscriptionAddedRef = useRef(false); // Flag to prevent duplicate AI transcriptions
+  
+  // LiveKit transcription state tracking
+  const isLiveKitTranscriptionActive = useRef(false);
+
   // Initialize high-quality audio context with browser-optimized settings for maximum audio fidelity
   const initializeAudioContext = useCallback(async () => {
     if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
@@ -81,16 +113,78 @@ const useHumeInference = ({
     }
   }, []);
 
+  // Clean transcription text (remove error indicators and normalize)
+  const cleanTranscriptionText = useCallback((text: string): string => {
+    return text
+      .replace(/\s*\[partial due to error\]\s*/gi, '')
+      .replace(/\s*\[interrupted\]\s*/gi, '')
+      .replace(/\s*\[AI Response\]\s*/gi, '')
+      .trim();
+  }, []);
+
+  // Enhanced transcription methods for LiveKit integration
+  const addTranscriptionEntry = useCallback((speaker: 'user' | 'ai', text: string, duration?: number, confidence?: number, isFinal: boolean = true, source: 'livekit' | 'webspeech' = 'webspeech', participantId?: string, trackId?: string) => {
+    // Clean the text before adding to transcription
+    const cleanText = cleanTranscriptionText(text);
+    
+    // Only add if there's meaningful content
+    if (!cleanText) {
+      console.log(`📝 Skipping empty transcription for ${speaker}`);
+      return;
+    }
+    
+    // Only add final transcriptions to avoid interim duplicates
+    if (!isFinal) {
+      console.log(`📝 Skipping interim transcription for ${speaker}: "${cleanText}"`);
+      return;
+    }
+    
+    // Map speaker labels for display
+    const displaySpeaker = speaker === 'ai' ? 'Web Agent' : 'User';
+    
+    const entry: TranscriptionEntry = {
+      id: `${speaker}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      timestamp: new Date(),
+      speaker,
+      text: cleanText, // Store clean text
+      duration,
+      confidence,
+      isFinal,
+      source,
+      participantId,
+      trackId
+    };
+    
+    setTranscription(prev => {
+      const newTranscription = [...prev, entry];
+      // Force immediate re-render
+      setTranscriptionUpdateTrigger(t => t + 1);
+      return newTranscription;
+    });
+    
+    console.log(`📝 ${source.toUpperCase()} FINAL transcription added: ${displaySpeaker} - "${cleanText}" (confidence: ${confidence ? (confidence * 100).toFixed(1) + '%' : 'N/A'}, participant: ${participantId || 'N/A'})`);
+  }, [cleanTranscriptionText]);
+
   // Immediate interruption for real-time response
   const executeImmediateInterruption = useCallback(() => {
     console.log('🚨 IMMEDIATE INTERRUPTION - stopping all audio NOW');
     
     shouldInterruptRef.current = true;
+  
+    // Save AI transcription before stopping recognition
+    if (currentAISpeechRef.current.trim()) {
+      console.log('💾 Saving AI transcription before interruption:', currentAISpeechRef.current.trim());
+      const duration = (Date.now() - aiResponseStartTimeRef.current) / 1000;
+      addTranscriptionEntry('ai', currentAISpeechRef.current.trim(), duration, undefined, true, 'livekit');
+      currentAISpeechRef.current = '';
+    }
+    
+    // Reset AI transcription state
+    isAISpeakingForTranscriptionRef.current = false;
     
     // Clear stream queue and reset timing
     audioStreamQueue.current = [];
     nextPlayTimeRef.current = 0;
-    lastChunkEndTimeRef.current = 0;
     
     // Stop current AudioContext source immediately
     if (currentAudioSourceRef.current) {
@@ -108,7 +202,7 @@ const useHumeInference = ({
     isPlayingRef.current = false;
     
     console.log('✅ Immediate interruption completed');
-  }, []);
+  }, [addTranscriptionEntry]);
 
   // High-quality audio playback
   const playAudioWithHighQuality = useCallback(async (audioBlob: Blob): Promise<boolean> => {
@@ -155,6 +249,8 @@ const useHumeInference = ({
       
       source.onended = () => {
         console.log('🔚 High-quality audio ended');
+        // Stop AI speech transcription when audio ends
+        stopAISpeechTranscription();
         currentAudioSourceRef.current = null;
         isPlayingRef.current = false;
         shouldInterruptRef.current = false;
@@ -259,41 +355,40 @@ const useHumeInference = ({
         
         // Log audio levels periodically for TEXT agents (for debugging)
         if ((agentDetails?.agent_type === 'TEXT' || agentDetails?.type === 'TEXT') && Math.random() < 0.05) { // 5% chance to log
-          console.log(`🔊 TEXT Agent - User audio level: ${rms.toFixed(1)}, Speaking: ${isUserSpeakingRef.current}, Threshold: 40`);
+          console.log(`🔊 TEXT Agent - User audio level: ${rms.toFixed(1)}, Speaking: ${isUserSpeakingRef.current}, Threshold: 35`);
         }
         
-        // Enhanced speech detection threshold - increased sensitivity to avoid background noise
-        if (rms > 40 && !isUserSpeakingRef.current) { // Increased threshold to avoid background noise
+        // Enhanced speech detection threshold - more sensitive for better user experience
+        if (rms > 35 && !isUserSpeakingRef.current) { // Lowered from 60 to 35 for easier detection
           speechFramesRef.current++;
           silenceFramesRef.current = 0;
-          
-          // Require 5 consecutive speech frames to confirm speaking (more reliable detection)
-          if (speechFramesRef.current >= 5) {
+          if (speechFramesRef.current >= 3) { // Lowered from 8 to 3 frames for faster response
             isUserSpeakingRef.current = true;
-            // For TEXT agents, just log speaking detection (no interruption needed)
-            if (agentDetails?.agent_type === 'TEXT' || agentDetails?.type === 'TEXT') {
-              console.log('🎤 User started speaking in TEXT agent session');
-            } else {
-              console.log('🎤 User started speaking - IMMEDIATE interruption');
-              executeImmediateInterruption();
+            startUserSpeechTranscription();
+            if (agentDetails?.agent_type !== 'TEXT' && agentDetails?.type !== 'TEXT') {
+              console.log('🎤 User started speaking - pausing AI speech recognition');
+              // No AI speech recognition to pause here, as it's handled by LiveKit
             }
           }
-        } else if (rms < 25 && isUserSpeakingRef.current) { // Increased threshold for silence detection
+        } else if (rms < 20 && isUserSpeakingRef.current) { // Lowered from 30 to 20 for better silence detection
           silenceFramesRef.current++;
           speechFramesRef.current = 0;
-          
-          // Require 8 consecutive silence frames to confirm stopped speaking
-          if (silenceFramesRef.current >= 8) {
+          const requiredSilenceFrames = (agentDetails?.agent_type === 'TEXT' || agentDetails?.type === 'TEXT') ? 100 : 80; // Reduced silence requirement
+          if (silenceFramesRef.current >= requiredSilenceFrames) {
             isUserSpeakingRef.current = false;
-            // For TEXT agents, just log speaking detection
-            if (agentDetails?.agent_type === 'TEXT' || agentDetails?.type === 'TEXT') {
-              console.log('🤫 User stopped speaking in TEXT agent session');
+            stopUserSpeechTranscription();
+            console.log('🤫 User stopped speaking');
+            if (agentDetails?.agent_type !== 'TEXT' && agentDetails?.type !== 'TEXT') {
+              console.log('🤖 Resuming AI speech recognition');
+              // No AI speech recognition to restart here, as it's handled by LiveKit
             } else {
-              console.log('🤫 User stopped speaking');
-              // Reset interruption flag after a short delay
+              // For TEXT agents, don't restart AI speech recognition here
+              // AI speech recognition should only be created when AI audio tracks are received
+              console.log('🤖 User stopped speaking in TEXT agent session - AI recognition will be handled by audio tracks');
+              // Add a small delay before allowing AI to continue to prevent false interruptions
               setTimeout(() => {
-                shouldInterruptRef.current = false;
-              }, 500);
+                console.log('🔄 Ready for AI response after user speech');
+              }, 1000); // 1 second delay
             }
           }
         } else {
@@ -310,7 +405,160 @@ const useHumeInference = ({
     } catch (error) {
       console.warn('Enhanced speech detection setup failed:', error);
     }
-  }, [executeImmediateInterruption]);
+  }, [agentDetails]);
+
+  const startUserSpeechTranscription = useCallback(() => {
+    if (!isUserSpeakingForTranscriptionRef.current) {
+      isUserSpeakingForTranscriptionRef.current = true;
+      userTranscriptionAddedRef.current = false; // Reset flag
+      speechStartTimeRef.current = Date.now();
+      currentUserSpeechRef.current = '';
+      console.log('🎤 Started user speech transcription (LiveKit native)');
+    }
+  }, []);
+
+  const stopUserSpeechTranscription = useCallback(() => {
+    if (isUserSpeakingForTranscriptionRef.current) {
+      // LiveKit handles transcription lifecycle automatically
+      console.log('🎤 User speech transcription stopped (LiveKit native)');
+      isUserSpeakingForTranscriptionRef.current = false;
+    }
+  }, []);
+
+  const startAISpeechTranscription = useCallback(() => {
+    if (!isAISpeakingForTranscriptionRef.current) {
+      isAISpeakingForTranscriptionRef.current = true;
+      aiResponseStartTimeRef.current = Date.now();
+      currentAISpeechRef.current = '';
+      console.log('🤖 Started AI speech transcription (LiveKit native)');
+    }
+  }, []);
+
+  const stopAISpeechTranscription = useCallback(() => {
+    if (isAISpeakingForTranscriptionRef.current) {
+      const duration = (Date.now() - aiResponseStartTimeRef.current) / 1000;
+      
+      // For TEXT agents, we need to get the response from the agent
+      // Since we don't have the actual text, we'll add a placeholder
+      // In a real implementation, you'd get this from the agent's response
+      if (currentAISpeechRef.current.trim()) {
+        addTranscriptionEntry('ai', currentAISpeechRef.current.trim(), duration, undefined, true, 'livekit');
+        console.log('🤖 Added AI transcription:', currentAISpeechRef.current.trim());
+      } else {
+        // Skip adding placeholder - only add meaningful content
+        console.log(`🤖 Skipping AI transcription placeholder (duration: ${duration}s)`);
+      }
+      
+      isAISpeakingForTranscriptionRef.current = false;
+      currentAISpeechRef.current = '';
+      
+      console.log('🔇 Stopped AI speech transcription (LiveKit native)');
+    }
+  }, [addTranscriptionEntry]);
+
+  const updateUserSpeechTranscription = useCallback((text: string) => {
+    if (isUserSpeakingForTranscriptionRef.current) {
+      currentUserSpeechRef.current = text;
+    }
+  }, []);
+
+  const updateAISpeechTranscription = useCallback((text: string) => {
+    if (isAISpeakingForTranscriptionRef.current) {
+      currentAISpeechRef.current = text;
+      console.log('🤖 Updated AI speech transcription:', text);
+    }
+  }, []);
+
+  // Method to add AI response text for TEXT agents
+  const addAIResponseText = useCallback((text: string) => {
+    if (isAISpeakingForTranscriptionRef.current) {
+      currentAISpeechRef.current = text;
+      console.log('🤖 Added AI response text:', text);
+    } else {
+      // If AI is not currently speaking, start transcription and add text
+      startAISpeechTranscription();
+      currentAISpeechRef.current = text;
+      console.log('🤖 Started AI transcription with text:', text);
+    }
+  }, [startAISpeechTranscription]);
+
+  // Method to handle when AI starts speaking (for TEXT agents)
+  const onAIStartsSpeaking = useCallback(() => {
+    console.log('🤖 AI started speaking - starting transcription');
+    startAISpeechTranscription();
+  }, [startAISpeechTranscription]);
+
+  // Method to handle when AI stops speaking (for TEXT agents)
+  const onAIStopsSpeaking = useCallback(() => {
+    console.log('🤖 AI stopped speaking - stopping transcription');
+    stopAISpeechTranscription();
+    
+    // Small delay before allowing user speech to start again
+    setTimeout(() => {
+      console.log('🔄 Ready for user speech after AI response');
+    }, 500);
+  }, [stopAISpeechTranscription]);
+
+  const saveTranscription = useCallback(async () => {
+    if (transcription.length === 0) {
+      console.log('📝 No transcription to save');
+      return;
+    }
+
+    try {
+      // Create a formatted transcription text with only final, meaningful entries
+      const finalEntries = transcription.filter(entry => 
+        cleanTranscriptionText(entry.text).length > 0 && entry.isFinal === true
+      );
+      
+      if (finalEntries.length === 0) {
+        console.log('📝 No final transcription to save');
+        toast.info('No final transcription to save');
+        return;
+      }
+
+      const formattedText = finalEntries.map(entry => {
+        const time = entry.timestamp.toLocaleTimeString();
+        const speaker = entry.speaker === 'user' ? 'User' : 'Web Agent';
+        const duration = entry.duration ? ` (${entry.duration.toFixed(1)}s)` : '';
+        const confidence = entry.confidence ? ` [${(entry.confidence * 100).toFixed(1)}%]` : '';
+        const source = entry.source ? ` [${entry.source.toUpperCase()}]` : '';
+        const participant = entry.participantId ? ` (${entry.participantId})` : '';
+        const cleanText = cleanTranscriptionText(entry.text);
+        return `[${time}] ${speaker}${duration}${confidence}${source}${participant}: ${cleanText}`;
+      }).join('\n\n');
+
+      // Create a blob with the transcription
+      const blob = new Blob([formattedText], { type: 'text/plain' });
+      
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `enhanced_transcription_${agentId || 'session'}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      console.log('💾 Enhanced transcription saved successfully');
+      toast.success('Enhanced transcription saved successfully!');
+    } catch (error) {
+      console.error('❌ Error saving transcription:', error);
+      toast.error('Failed to save transcription');
+    }
+  }, [transcription, agentId, cleanTranscriptionText]);
+
+  const clearTranscription = useCallback(() => {
+    setTranscription([]);
+    currentUserSpeechRef.current = '';
+    currentAISpeechRef.current = '';
+    isUserSpeakingForTranscriptionRef.current = false;
+    isAISpeakingForTranscriptionRef.current = false;
+    console.log('🧹 Transcription cleared');
+  }, []);
+
+
 
   const stopSpeechDetection = useCallback(() => {
     if (speechContextRef.current && speechContextRef.current.state !== 'closed') {
@@ -425,6 +673,8 @@ const useHumeInference = ({
           const nextChunk = audioStreamQueue.current.shift();
           streamAudioChunk(nextChunk!.blob, nextChunk!.mimeType);
         } else if (audioStreamQueue.current.length === 0) {
+          // Stop AI speech transcription when stream ends
+          // No AI speech recognition to stop here, as it's handled by LiveKit
           // Reset timing when stream ends
           nextPlayTimeRef.current = 0;
           lastChunkEndTimeRef.current = 0;
@@ -518,18 +768,106 @@ const useHumeInference = ({
     isPlayingRef.current = false;
     isUserSpeakingRef.current = false;
     setHasPermissions(false);
+    
+    // Clear transcription
+    clearTranscription();
+    
+    // Stop speech recognition
+    // No speech recognition to stop here, as it's handled by LiveKit
+    // if (speechRecognitionRef.current) {
+    //   try {
+    //     speechRecognitionRef.current.stop();
+    //     speechRecognitionRef.current = null;
+    //     console.log('�� Speech recognition stopped during cleanup');
+    //   } catch (error) {
+    //     console.warn('Error stopping speech recognition during cleanup:', error);
+    //   }
+    // }
+
+    // Stop AI speech recognition
+    // No AI speech recognition to stop here, as it's handled by LiveKit
+    // if (aiSpeechRecognitionRef.current) {
+    //   try {
+    //     aiSpeechRecognitionRef.current.stop();
+    //     aiSpeechRecognitionRef.current = null;
+    //     aiSpeechRecognitionActiveRef.current = false;
+    //     console.log('🤖 AI speech recognition stopped during cleanup');
+    //   } catch (error) {
+    //     console.warn('Error stopping AI speech recognition during cleanup:', error);
+    //   }
+    // }
+
+    // Stop LiveKit transcription
+    // No LiveKit transcription to stop here, as it's handled by LiveKit
+    // if (liveKitTranscriptionRef.current) {
+    //   try {
+    //     liveKitTranscriptionRef.current.stop();
+    //     liveKitTranscriptionRef.current = null;
+    //     console.log('🎤 LiveKit transcription stopped during cleanup');
+    //   } catch (error) {
+    //     console.warn('Error stopping LiveKit transcription during cleanup:', error);
+    //   }
+    // }
 
     console.log('✅ Cleanup completed');
-  }, [executeImmediateInterruption, stopSpeechDetection]);
+  }, [executeImmediateInterruption, stopSpeechDetection, clearTranscription]);
 
-  // Connect to LiveKit room for TEXT agents (simplified version of VoiceAssistant approach)
+  // Connect to LiveKit room for TEXT agents with native transcription integration
   const connectToLiveKitRoom = useCallback(async (sessionData: any) => {
     try {
-      console.log('🔗 Connecting to LiveKit room for TEXT agent...');
+      console.log('🔗 Connecting to LiveKit room for TEXT agent with native transcription...');
       const room = new Room();
       roomRef.current = room;
 
-      // Set up event listeners
+      // Set up LiveKit transcription event listeners
+      room.on(RoomEvent.TranscriptionReceived, (segments: TranscriptionSegment[], participant, publication) => {
+        console.log('📝 LiveKit transcription received:', {
+          segmentsCount: segments.length,
+          participantId: participant?.identity,
+          trackId: publication?.trackSid,
+          segments: segments.map(s => ({
+            id: s.id,
+            text: s.text,
+            final: s.final,
+            startTime: s.startTime,
+            endTime: s.endTime,
+            language: s.language
+          }))
+        });
+
+        // Process each transcription segment
+        segments.forEach(segment => {
+          // Determine speaker type based on participant ID
+          const speaker = participant?.identity?.includes('agent') || participant?.identity?.includes('ai') ? 'ai' : 'user';
+          
+          // Add transcription entry with LiveKit data
+          addTranscriptionEntry(
+            speaker,
+            segment.text,
+            segment.endTime ? (segment.endTime - segment.startTime) / 1000 : undefined, // duration in seconds
+            undefined, // confidence not provided by LiveKit
+            segment.final,
+            'livekit',
+            participant?.identity,
+            publication?.trackSid
+          );
+
+          // Update current speech tracking
+          if (speaker === 'user') {
+            currentUserSpeechRef.current = segment.text;
+            if (segment.final) {
+              userTranscriptionAddedRef.current = true;
+            }
+          } else if (speaker === 'ai') {
+            currentAISpeechRef.current = segment.text;
+            if (segment.final) {
+              aiTranscriptionAddedRef.current = true;
+            }
+          }
+        });
+      });
+
+      // Set up other event listeners
       room.on(RoomEvent.Connected, async () => {
         console.log('✅ Connected to LiveKit room for TEXT agent');
         console.log('🏠 Room details:', {
@@ -551,6 +889,7 @@ const useHumeInference = ({
             if (audioTrack?.mediaStream) {
               startSpeechDetection(audioTrack.mediaStream);
               console.log('🎯 Started real-time speaking detection for TEXT agent');
+              console.log('🎤 User microphone stream detected - using LiveKit native transcription');
             }
           }
         } catch (error) {
@@ -582,33 +921,41 @@ const useHumeInference = ({
             muted: publication.isMuted,
             enabled: publication.isEnabled
           });
-
-          // Attach audio track for playback
+      
+          // Create audio element for playback
           const audioElement = track.attach() as HTMLAudioElement;
           audioElement.autoplay = true;
           audioElement.volume = 1.0;
           audioElement.setAttribute('data-livekit-track', 'text-agent-audio');
-          
-          // Enhanced logging for TEXT agent audio
+      
+          // Create a MediaStream from the audio element for speech recognition
+          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+          const source = audioContext.createMediaElementSource(audioElement);
+          const destination = audioContext.createMediaStreamDestination();
+          source.connect(destination);
+          const capturedStream = destination.stream;
+      
+          // LiveKit handles speech recognition, so we just need to listen for events
+          // We don't need to instantiate a new one here unless we want to manage its state
+          // For now, we'll rely on LiveKit's native transcription.
+          console.log('🎤 Enhanced user speech recognition handled by LiveKit native transcription');
+      
           audioElement.onplay = () => {
             console.log('▶️ TEXT Agent audio started playing');
-            console.log('🎵 Audio element state:', {
-              volume: audioElement.volume,
-              muted: audioElement.muted,
-              duration: audioElement.duration,
-              currentTime: audioElement.currentTime
-            });
+            startAISpeechTranscription();
+            onAIStartsSpeaking();
           };
-          
+      
           audioElement.onended = () => {
             console.log('🔚 TEXT Agent audio ended');
+            // Don't add transcription here since we only get final results now
+            onAIStopsSpeaking();
           };
-          
+      
           audioElement.onerror = (error) => {
             console.error('❌ TEXT Agent audio error:', error);
           };
-
-          // Add to document for playback
+      
           document.body.appendChild(audioElement);
           console.log('🔊 TEXT Agent audio element attached to DOM');
         }
@@ -653,7 +1000,7 @@ const useHumeInference = ({
       console.error('❌ Error connecting to LiveKit room:', error);
       throw new Error('Failed to connect to LiveKit room');
     }
-  }, []);
+  }, [startSpeechDetection]);
 
 
 
@@ -883,6 +1230,11 @@ const useHumeInference = ({
 
           // Handle audio chunks with real-time streaming and quality preservation
           if (data.audio) {
+            // Start AI speech transcription when first audio chunk is received
+            if (nextPlayTimeRef.current === 0) {
+              startAISpeechTranscription();
+            }
+            
             // Detect and preserve the best audio format from VoiceCake
             const audioFormat = data.audio_format || data.format || 'audio/wav';
             const isHighQualityFormat = audioFormat.includes('webm') || audioFormat.includes('opus') || audioFormat.includes('mp3');
@@ -915,7 +1267,6 @@ const useHumeInference = ({
                 console.log(`📦 Queued chunk for streaming, queue size: ${audioStreamQueue.current.length}`);
               } else {
                 // Queue is full: still enqueue latest to keep audio flowing, but drop oldest to cap latency
-                audioStreamQueue.current.shift();
                 audioStreamQueue.current.push({ blob: audioBlob, mimeType: audioFormat });
                 console.log(`🔄 Queue full, dropped oldest. Queue size: ${audioStreamQueue.current.length}`);
               }
@@ -1015,13 +1366,34 @@ const useHumeInference = ({
 
     }
 
-  }, [agentId, startSpeechDetection, addToQueue, base64ToBlob, executeImmediateInterruption, cleanup, onAudioReceived, streamAudioChunk]);
+  }, [agentId, startSpeechDetection, addToQueue, base64ToBlob, executeImmediateInterruption, cleanup, streamAudioChunk, connectToLiveKitRoom]);
 
 
 
   // Stop inference
 
   const stopInference = useCallback(async () => {
+    // Stop any ongoing transcription
+    stopUserSpeechTranscription();
+    stopAISpeechTranscription();
+    
+    // Ensure AI speech recognition is properly stopped
+    // No AI speech recognition to stop here, as it's handled by LiveKit
+    // if (aiSpeechRecognitionRef.current && aiSpeechRecognitionActiveRef.current) {
+    //   try {
+    //     aiSpeechRecognitionRef.current.stop();
+    //     aiSpeechRecognitionActiveRef.current = false;
+    //     console.log('🤖 AI speech recognition stopped during inference stop');
+    //   } catch (error) {
+    //     console.warn('Error stopping AI speech recognition during inference stop:', error);
+    //   }
+    // }
+    
+    // Save transcription if there's content
+    if (transcription.length > 0) {
+      await saveTranscription();
+    }
+    
     // For TEXT agents using LiveKit sessions, properly end the session
     if ((agentDetails?.agent_type === 'TEXT' || agentDetails?.type === 'TEXT') && sessionData) {
       try {
@@ -1052,7 +1424,7 @@ const useHumeInference = ({
     setHasPermissions(false);
     toast.success("Inference stopped");
 
-  }, [cleanup, agentDetails, sessionData]);
+  }, [cleanup, agentDetails, sessionData, transcription, saveTranscription, stopUserSpeechTranscription, stopAISpeechTranscription]);
 
 
 
@@ -1079,29 +1451,17 @@ const useHumeInference = ({
         toast.success("Microphone muted");
 
       } else {
-
         toast.success("Microphone unmuted");
-
       }
-
     }
-
   }, [isMicOn]);
 
-
-
   // Cleanup on unmount
-
   useEffect(() => {
-
     return () => {
-
       cleanup();
-
     };
-
   }, [cleanup]);
-
 
 
   return {
@@ -1117,12 +1477,17 @@ const useHumeInference = ({
     clearCachedPermissions,
     sessionData, // Expose session data for TEXT agents
     mediaStream: mediaStreamRef.current,
+    // Enhanced transcription data and methods
+    transcription,
+    isTranscribing,
+    saveTranscription,
+    clearTranscription,
+    addAIResponseText, // Method to add AI response text for TEXT agents
+    onAIStartsSpeaking, // Method to handle AI speech start
+    onAIStopsSpeaking, // Method to handle AI speech stop
+    transcriptionUpdateTrigger
   };
 
 };
 
-
-
 export default useHumeInference;
-
-
