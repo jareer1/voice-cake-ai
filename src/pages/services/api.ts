@@ -1,5 +1,6 @@
 import axios from "axios";
 import config from "@/lib/config";
+import { VoiceCloneCreate, VoiceCloneResponse } from "@/types/voice";
 
 const api = axios.create({
   // baseURL: "/api-proxy",
@@ -93,6 +94,43 @@ export const authAPI = {
       token, 
       new_password: newPassword 
     });
+    return response.data;
+  }
+};
+
+// Voice Clone API functions
+export const voiceCloneAPI = {
+  getVoiceClones: async (): Promise<VoiceCloneResponse[]> => {
+    const response = await api.get('/voice-clones/');
+    return response.data;
+  },
+  
+  getVoiceClone: async (id: number): Promise<VoiceCloneResponse> => {
+    const response = await api.get(`/voice-clones/${id}`);
+    return response.data;
+  },
+  
+  deleteVoiceClone: async (id: string): Promise<void> => {
+    const response = await api.delete(`/voice-clones/${id}`);
+    return response.data;
+  },
+  
+  // Create voice clone with audio file (required by backend)
+  createVoiceCloneWithAudio: async (
+    voiceCloneData: VoiceCloneCreate, 
+    audioFile: File
+  ): Promise<VoiceCloneResponse> => {
+    const formData = new FormData();
+    formData.append('audio_file', audioFile);
+    formData.append('name', voiceCloneData.name);
+    if (voiceCloneData.description) {
+      formData.append('description', voiceCloneData.description);
+    }
+    if (voiceCloneData.language) {
+      formData.append('language', voiceCloneData.language);
+    }
+    
+    const response = await api.post('/voice-clones/', formData);
     return response.data;
   }
 };

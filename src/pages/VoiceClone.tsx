@@ -1,131 +1,97 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
 import { 
-  Upload, 
-  Mic, 
-  Play, 
-  Square, 
-  Download, 
-  Trash2, 
-  Eye,
   Plus,
-  Clock,
-  CheckCircle,
-  AlertCircle,
   Volume2
 } from "lucide-react";
+import VoiceCloneItem from "@/components/VoiceCloneItem";
+import VoiceRecorder from "@/components/VoiceRecorder";
+import type { VoiceClone, VoiceCloneResponse, VoiceCloneCreate } from "@/types/voice";
+import { VoiceCloneLanguage } from "@/types/voice";
+import { voiceCloneAPI } from "@/pages/services/api";
+import { useToast } from "@/hooks/use-toast";
 
-interface VoiceClone {
-  id: string;
-  name: string;
-  description: string;
-  status: "training" | "ready" | "failed";
-  audioSample: string;
-  createdAt: string;
-  trainingProgress: number;
-  quality: "high" | "medium" | "low";
-  duration: string;
-}
-
-const mockVoiceClones: VoiceClone[] = [
-  {
-    id: "1",
-    name: "Professional Male Voice",
-    description: "Deep, authoritative voice perfect for business presentations",
-    status: "ready",
-    audioSample: "professional_male.mp3",
-    createdAt: "2024-01-20",
-    trainingProgress: 100,
-    quality: "high",
-    duration: "2m 30s"
-  },
-  {
-    id: "2", 
-    name: "Friendly Female Voice",
-    description: "Warm, conversational tone ideal for customer service",
-    status: "training",
-    audioSample: "friendly_female.mp3",
-    createdAt: "2024-01-22",
-    trainingProgress: 67,
-    quality: "medium",
-    duration: "1m 45s"
-  },
-  {
-    id: "3",
-    name: "Energetic Sales Voice",
-    description: "Upbeat and persuasive voice for sales and marketing",
-    status: "failed",
-    audioSample: "sales_voice.mp3", 
-    createdAt: "2024-01-18",
-    trainingProgress: 0,
-    quality: "low",
-    duration: "0m 45s"
-  }
-];
+// Helper function to convert API response to legacy format for existing components
+const convertToLegacyFormat = (apiResponse: VoiceCloneResponse): VoiceClone => ({
+  id: apiResponse.id.toString(),
+  name: apiResponse.name,
+  description: apiResponse.description || "",
+  status: "ready", // Default to ready for now, can be enhanced later
+  audioSample: "", // Not provided by API
+  createdAt: new Date(apiResponse.created_at).toLocaleDateString(),
+  trainingProgress: 100, // Default to complete
+  quality: "N/A", // Default quality
+  duration: "N/A", // Not provided by API
+  provider_voice_id: apiResponse.provider_voice_id
+});
 
 export default function VoiceClone() {
-  const [voiceClones] = useState<VoiceClone[]>(mockVoiceClones);
-  const [isRecording, setIsRecording] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [voiceClones, setVoiceClones] = useState<VoiceClone[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isCreating, setIsCreating] = useState(false);
+  const { toast } = useToast();
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "ready": return "bg-green-500";
-      case "training": return "bg-blue-500";
-      case "failed": return "bg-red-500";
-      default: return "bg-gray-500";
+  // Fetch voice clones on component mount
+  useEffect(() => {
+    fetchVoiceClones();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const fetchVoiceClones = async () => {
+    try {
+      setIsLoading(true);
+      const response = await voiceCloneAPI.getVoiceClones();
+      const convertedClones = response.map(convertToLegacyFormat);
+      setVoiceClones(convertedClones);
+    } catch (error) {
+      console.error('Error fetching voice clones:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch voice clones. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "ready": return CheckCircle;
-      case "training": return Clock;
-      case "failed": return AlertCircle;
-      default: return Clock;
+  const handleVoiceCloneCreate = async (data: {
+    name: string;
+    description: string;
+    language: VoiceCloneLanguage;
+    audioFile: File;
+  }) => {
+    setIsCreating(true);
+    try {
+      const voiceCloneData: VoiceCloneCreate = {
+        name: data.name,
+        description: data.description || undefined,
+        language: data.language
+      };
+
+      const response = await voiceCloneAPI.createVoiceCloneWithAudio(voiceCloneData, data.audioFile);
+      const newClone = convertToLegacyFormat(response);
+      setVoiceClones(prev => [...prev, newClone]);
+      
+      toast({
+        title: "Success",
+        description: "Voice clone created successfully!",
+      });
+    } catch (error) {
+      console.error('Error creating voice clone:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create voice clone. Please try again.",
+        variant: "destructive",
+      });
+      throw error; // Re-throw so VoiceRecorder knows there was an error
+    } finally {
+      setIsCreating(false);
     }
   };
 
-  const getQualityColor = (quality: string) => {
-    switch (quality) {
-      case "high": return "text-green-600 bg-green-100";
-      case "medium": return "text-yellow-600 bg-yellow-100";
-      case "low": return "text-red-600 bg-red-100";
-      default: return "text-gray-600 bg-gray-100";
-    }
-  };
-
-  const handleStartRecording = () => {
-    setIsRecording(true);
-    // Simulate recording
-    setTimeout(() => setIsRecording(false), 5000);
-  };
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setIsUploading(true);
-      // Simulate upload progress
-      let progress = 0;
-      const interval = setInterval(() => {
-        progress += 10;
-        setUploadProgress(progress);
-        if (progress >= 100) {
-          clearInterval(interval);
-          setIsUploading(false);
-          setUploadProgress(0);
-        }
-      }, 200);
-    }
+  const handleDeleteVoiceClone = (id: string) => {
+    setVoiceClones(prev => prev.filter(clone => clone.id !== id));
   };
 
   return (
@@ -145,120 +111,14 @@ export default function VoiceClone() {
         </Button>
       </div>
 
-      {/* Main Content */}
+            {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Upload/Record Section */}
         <div className="lg:col-span-1">
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Mic className="w-5 h-5" />
-                Create New Voice
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <Tabs defaultValue="upload" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="upload">Upload Audio</TabsTrigger>
-                  <TabsTrigger value="record">Record Voice</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="upload" className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="audio-upload">Audio File</Label>
-                    <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
-                      <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground mb-2">
-                        Drop your audio file here or click to browse
-                      </p>
-                      <Input
-                        id="audio-upload"
-                        type="file"
-                        accept="audio/*"
-                        className="hidden"
-                        onChange={handleFileUpload}
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => document.getElementById('audio-upload')?.click()}
-                      >
-                        Choose File
-                      </Button>
-                    </div>
-                    {isUploading && (
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>Uploading...</span>
-                          <span>{uploadProgress}%</span>
-                        </div>
-                        <Progress value={uploadProgress} className="h-2" />
-                      </div>
-                    )}
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="record" className="space-y-4">
-                  <div className="text-center space-y-4">
-                    <div className="w-24 h-24 mx-auto bg-theme-gradient rounded-full flex items-center justify-center">
-                      <Mic className={`w-8 h-8 text-white ${isRecording ? 'animate-pulse' : ''}`} />
-                    </div>
-                    <div>
-                      <Button
-                        size="lg"
-                        variant={isRecording ? "destructive" : "default"}
-                        className={isRecording ? "" : "btn-theme-gradient"}
-                        onClick={isRecording ? () => setIsRecording(false) : handleStartRecording}
-                      >
-                        {isRecording ? (
-                          <>
-                            <Square className="w-4 h-4 mr-2" />
-                            Stop Recording
-                          </>
-                        ) : (
-                          <>
-                            <Mic className="w-4 h-4 mr-2" />
-                            Start Recording
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                    {isRecording && (
-                      <p className="text-sm text-muted-foreground">
-                        Recording... Speak clearly for 30-60 seconds
-                      </p>
-                    )}
-                  </div>
-                </TabsContent>
-              </Tabs>
-
-              <Separator />
-
-              {/* Voice Details Form */}
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="voice-name">Voice Name</Label>
-                  <Input id="voice-name" placeholder="e.g., Professional Male Voice" />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="voice-description">Description</Label>
-                  <Textarea 
-                    id="voice-description" 
-                    placeholder="Describe the voice characteristics and intended use..."
-                    rows={3}
-                  />
-                </div>
-
-                <Button 
-                  className="w-full btn-theme-gradient border border-theme-primary hover:border-theme-secondary"
-                  disabled={isUploading || isRecording}
-                >
-                  Create Voice Clone
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <VoiceRecorder 
+            onVoiceCloneCreate={handleVoiceCloneCreate}
+            isCreating={isCreating}
+          />
         </div>
 
         {/* Voice Clones List */}
@@ -272,65 +132,24 @@ export default function VoiceClone() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {voiceClones.map((voice, index) => {
-                  const StatusIcon = getStatusIcon(voice.status);
-                  return (
-                    <div 
-                      key={voice.id} 
-                      className="border rounded-lg p-4 hover:shadow-sm transition-shadow animate-fade-up"
-                      style={{ animationDelay: `${index * 0.1}s` }}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 space-y-2">
-                          <div className="flex items-center gap-3">
-                            <h3 className="font-semibold text-foreground">{voice.name}</h3>
-                            <Badge className={getStatusColor(voice.status) + " text-white"}>
-                              <StatusIcon className="w-3 h-3 mr-1" />
-                              {voice.status}
-                            </Badge>
-                            <Badge variant="outline" className={getQualityColor(voice.quality)}>
-                              {voice.quality} quality
-                            </Badge>
+                 {isLoading ? (
+                   <div className="text-center text-muted-foreground py-8">
+                     Loading voice clones...
                           </div>
-                          
-                          <p className="text-sm text-muted-foreground">{voice.description}</p>
-                          
-                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                            <span>Created: {voice.createdAt}</span>
-                            <span>Duration: {voice.duration}</span>
+                 ) : voiceClones.length === 0 ? (
+                   <div className="text-center text-muted-foreground py-8">
+                     No voice clones found. Create your first voice clone to get started!
                           </div>
-
-                          {voice.status === "training" && (
-                            <div className="space-y-1">
-                              <div className="flex justify-between text-sm">
-                                <span>Training Progress</span>
-                                <span>{voice.trainingProgress}%</span>
-                              </div>
-                              <Progress value={voice.trainingProgress} className="h-2" />
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="flex items-center gap-2 ml-4">
-                          <Button variant="outline" size="sm">
-                            <Play className="w-4 h-4" />
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          {voice.status === "ready" && (
-                            <Button variant="outline" size="sm">
-                              <Download className="w-4 h-4" />
-                            </Button>
-                          )}
-                          <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                 ) : (
+                   voiceClones.map((voice, index) => (
+                     <VoiceCloneItem
+                       key={voice.id}
+                       voice={voice}
+                       index={index}
+                       onDelete={handleDeleteVoiceClone}
+                     />
+                   ))
+                 )}
               </div>
             </CardContent>
           </Card>
