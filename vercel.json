@@ -8,16 +8,16 @@
   "headers": [
     {
       "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Content-Security-Policy",
-          "value": "frame-ancestors 'self' https://www.moinc.ai;"
-        },
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        }
-      ]
+              "headers": [
+          {
+            "key": "Content-Security-Policy",
+            "value": "frame-ancestors *;"
+          },
+          {
+            "key": "X-Content-Type-Options",
+            "value": "nosniff"
+          }
+        ]
     }
   ]
 }
