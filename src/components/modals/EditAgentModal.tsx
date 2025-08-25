@@ -242,13 +242,13 @@ export function EditAgentModal({ isOpen, onClose, onSubmit, agent }: EditAgentMo
               <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
                 <div className="space-y-1">
-                  <Textarea
-                    id="description"
-                    placeholder="Describe what this agent does and how it helps users..."
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    rows={3}
-                    required
+                <Textarea
+                  id="description"
+                  placeholder="Describe what this agent does and how it helps users..."
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  rows={3}
+                  required
                     maxLength={1500}
                   />
                   <div className="flex justify-between items-center">
