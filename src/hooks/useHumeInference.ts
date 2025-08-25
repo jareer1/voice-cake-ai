@@ -3,55 +3,7 @@ import { toast } from "sonner";
 import config from "@/lib/config";
 import { agentAPI } from "@/pages/services/api";
 import { publicAgentAPI } from "@/pages/services/publicApi";
-import { Room, RoomEvent, Track } from 'livekit-client';
-
-// Speech Recognition interface for TypeScript
-interface SpeechRecognition extends EventTarget {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  start(): void;
-  stop(): void;
-  abort(): void;
-  onresult: ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => any) | null;
-  onerror: ((this: SpeechRecognition, ev: SpeechRecognitionErrorEvent) => any) | null;
-  onend: ((this: SpeechRecognition, ev: Event) => any) | null;
-}
-
-interface SpeechRecognitionEvent {
-  resultIndex: number;
-  results: SpeechRecognitionResultList;
-}
-
-interface SpeechRecognitionResultList {
-  length: number;
-  item(index: number): SpeechRecognitionResult;
-  [index: number]: SpeechRecognitionResult;
-}
-
-interface SpeechRecognitionResult {
-  isFinal: boolean;
-  length: number;
-  item(index: number): SpeechRecognitionAlternative;
-  [index: number]: SpeechRecognitionAlternative;
-}
-
-interface SpeechRecognitionAlternative {
-  transcript: string;
-  confidence: number;
-}
-
-interface SpeechRecognitionErrorEvent {
-  error: string;
-  message: string;
-}
-
-declare global {
-  interface Window {
-    SpeechRecognition: new () => SpeechRecognition;
-    webkitSpeechRecognition: new () => SpeechRecognition;
-  }
-}
+import { Room, RoomEvent, Track, RemoteAudioTrack, RemoteParticipant } from 'livekit-client';
 
 export const INFERENCE_STATES = {
   IDLE: "idle",
@@ -66,15 +18,6 @@ interface UseHumeInferenceProps {
   agentData?: any; // Optional pre-fetched agent data for public inference
 }
 
-// Transcription entry interface
-interface TranscriptionEntry {
-  id: string;
-  timestamp: Date;
-  speaker: 'user' | 'ai';
-  text: string;
-  duration?: number; // Duration in seconds for AI responses
-}
-
 const useHumeInference = ({ 
   agentId, 
   onAudioReceived,
@@ -87,11 +30,6 @@ const useHumeInference = ({
   const [agentDetails, setAgentDetails] = useState<any>(null);
   const [sessionData, setSessionData] = useState<any>(null);
   const [hasPermissions, setHasPermissions] = useState(false);
-  
-  // Transcription state
-  const [transcription, setTranscription] = useState<TranscriptionEntry[]>([]);
-  const [isTranscribing, setIsTranscribing] = useState(false);
-  const [transcriptionUpdateTrigger, setTranscriptionUpdateTrigger] = useState(0);
   
   // WebSocket and Media Stream refs (for SPEECH agents)
   const socketRef = useRef<WebSocket | null>(null);
@@ -123,22 +61,6 @@ const useHumeInference = ({
   const speechFramesRef = useRef(0);
   const silenceFramesRef = useRef(0);
 
-  // Transcription tracking
-  const currentUserSpeechRef = useRef<string>('');
-  const currentAISpeechRef = useRef<string>('');
-  const speechStartTimeRef = useRef<number>(0);
-  const aiResponseStartTimeRef = useRef<number>(0);
-  const isUserSpeakingForTranscriptionRef = useRef(false);
-  const isAISpeakingForTranscriptionRef = useRef(false);
-  
-  // Speech recognition for user input
-  const speechRecognitionRef = useRef<SpeechRecognition | null>(null);
-  const isSpeechRecognitionSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
-
-  // Speech recognition for AI output
-  const aiSpeechRecognitionRef = useRef<SpeechRecognition | null>(null);
-  const aiSpeechRecognitionActiveRef = useRef(false);
-
   // Initialize high-quality audio context with browser-optimized settings for maximum audio fidelity
   const initializeAudioContext = useCallback(async () => {
     if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
@@ -159,75 +81,16 @@ const useHumeInference = ({
     }
   }, []);
 
-  // Clean transcription text (remove error indicators and normalize)
-  const cleanTranscriptionText = useCallback((text: string): string => {
-    return text
-      .replace(/\s*\[partial due to error\]\s*/gi, '')
-      .replace(/\s*\[interrupted\]\s*/gi, '')
-      .replace(/\s*\[AI Response\]\s*/gi, '')
-      .trim();
-  }, []);
-
-  // Transcription methods
-  const addTranscriptionEntry = useCallback((speaker: 'user' | 'ai', text: string, duration?: number) => {
-    // Clean the text before adding to transcription
-    const cleanText = cleanTranscriptionText(text);
-    
-    // Only add if there's meaningful content
-    if (!cleanText) {
-      console.log(`📝 Skipping empty transcription for ${speaker}`);
-      return;
-    }
-    
-    const entry: TranscriptionEntry = {
-      id: `${speaker}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: new Date(),
-      speaker,
-      text: cleanText, // Store clean text
-      duration
-    };
-    
-    setTranscription(prev => {
-      const newTranscription = [...prev, entry];
-      // Force re-render after state update
-      setTimeout(() => setTranscriptionUpdateTrigger(t => t + 1), 0);
-      return newTranscription;
-    });
-    
-    console.log(`📝 Transcription added: ${speaker} - "${cleanText}"`);
-  }, [cleanTranscriptionText]);
-
   // Immediate interruption for real-time response
   const executeImmediateInterruption = useCallback(() => {
     console.log('🚨 IMMEDIATE INTERRUPTION - stopping all audio NOW');
     
     shouldInterruptRef.current = true;
-  
-    // Save AI transcription before stopping recognition
-    if (aiSpeechRecognitionRef.current && currentAISpeechRef.current.trim()) {
-      console.log('💾 Saving AI transcription before interruption:', currentAISpeechRef.current.trim());
-      const duration = (Date.now() - aiResponseStartTimeRef.current) / 1000;
-      addTranscriptionEntry('ai', currentAISpeechRef.current.trim(), duration);
-      currentAISpeechRef.current = '';
-    }
-    
-    // Pause AI speech recognition instead of stopping it completely
-    if (aiSpeechRecognitionRef.current && aiSpeechRecognitionActiveRef.current) {
-      try {
-        aiSpeechRecognitionRef.current.stop();
-        aiSpeechRecognitionActiveRef.current = false;
-        console.log('⏸️ AI speech recognition paused during interruption');
-      } catch (error) {
-        console.warn('Error pausing AI speech recognition during interruption:', error);
-      }
-    }
-    
-    // Reset AI transcription state
-    isAISpeakingForTranscriptionRef.current = false;
     
     // Clear stream queue and reset timing
     audioStreamQueue.current = [];
     nextPlayTimeRef.current = 0;
+    lastChunkEndTimeRef.current = 0;
     
     // Stop current AudioContext source immediately
     if (currentAudioSourceRef.current) {
@@ -245,7 +108,7 @@ const useHumeInference = ({
     isPlayingRef.current = false;
     
     console.log('✅ Immediate interruption completed');
-  }, [addTranscriptionEntry]);
+  }, []);
 
   // High-quality audio playback
   const playAudioWithHighQuality = useCallback(async (audioBlob: Blob): Promise<boolean> => {
@@ -292,8 +155,6 @@ const useHumeInference = ({
       
       source.onended = () => {
         console.log('🔚 High-quality audio ended');
-        // Stop AI speech transcription when audio ends
-        stopAISpeechTranscription();
         currentAudioSourceRef.current = null;
         isPlayingRef.current = false;
         shouldInterruptRef.current = false;
@@ -402,52 +263,28 @@ const useHumeInference = ({
         }
         
         // Enhanced speech detection threshold - increased sensitivity to avoid background noise
-        if (rms > 40 && !isUserSpeakingRef.current) {
+        if (rms > 40 && !isUserSpeakingRef.current) { // Increased threshold to avoid background noise
           speechFramesRef.current++;
           silenceFramesRef.current = 0;
+          
+          // Require 5 consecutive speech frames to confirm speaking (more reliable detection)
           if (speechFramesRef.current >= 5) {
             isUserSpeakingRef.current = true;
-            startUserSpeechTranscription();
-            if (agentDetails?.agent_type !== 'TEXT' && agentDetails?.type !== 'TEXT') {
-              console.log('🎤 User started speaking - pausing AI speech recognition');
-              if (aiSpeechRecognitionRef.current && aiSpeechRecognitionActiveRef.current) {
-                aiSpeechRecognitionRef.current.stop();
-                aiSpeechRecognitionActiveRef.current = false;
-              }
-            }
-          }
-        } else if (rms < 25 && isUserSpeakingRef.current) {
-          silenceFramesRef.current++;
-          speechFramesRef.current = 0;
-          const requiredSilenceFrames = (agentDetails?.agent_type === 'TEXT' || agentDetails?.type === 'TEXT') ? 120 : 90;
-          if (silenceFramesRef.current >= requiredSilenceFrames) {
-            isUserSpeakingRef.current = false;
-            stopUserSpeechTranscription();
-            console.log('🤫 User stopped speaking');
-            if (agentDetails?.agent_type !== 'TEXT' && agentDetails?.type !== 'TEXT') {
-              console.log('🤖 Resuming AI speech recognition');
-              restartAISpeechRecognition();
+            // For TEXT agents, just log speaking detection (no interruption needed)
+            if (agentDetails?.agent_type === 'TEXT' || agentDetails?.type === 'TEXT') {
+              console.log('🎤 User started speaking in TEXT agent session');
             } else {
-              // For TEXT agents, restart AI speech recognition after user stops speaking
-              console.log('🤖 Restarting AI speech recognition for TEXT agent');
-              // Small delay to ensure user speech is fully processed
-              setTimeout(() => {
-                restartAISpeechRecognition();
-              }, 300);
+              console.log('🎤 User started speaking - IMMEDIATE interruption');
+              executeImmediateInterruption();
             }
           }
         } else if (rms < 25 && isUserSpeakingRef.current) { // Increased threshold for silence detection
           silenceFramesRef.current++;
           speechFramesRef.current = 0;
           
-          // Require more silence frames for TEXT agents to allow complete sentences
-          const requiredSilenceFrames = (agentDetails?.agent_type === 'TEXT' || agentDetails?.type === 'TEXT') ? 120 : 90;
-          
-          if (silenceFramesRef.current >= requiredSilenceFrames) {
+          // Require 8 consecutive silence frames to confirm stopped speaking
+          if (silenceFramesRef.current >= 8) {
             isUserSpeakingRef.current = false;
-            // Stop user speech transcription
-            stopUserSpeechTranscription();
-            
             // For TEXT agents, just log speaking detection
             if (agentDetails?.agent_type === 'TEXT' || agentDetails?.type === 'TEXT') {
               console.log('🤫 User stopped speaking in TEXT agent session');
@@ -473,227 +310,7 @@ const useHumeInference = ({
     } catch (error) {
       console.warn('Enhanced speech detection setup failed:', error);
     }
-  }, [executeImmediateInterruption, agentDetails]);
-
-  const startUserSpeechTranscription = useCallback(() => {
-    if (!isUserSpeakingForTranscriptionRef.current) {
-      isUserSpeakingForTranscriptionRef.current = true;
-      speechStartTimeRef.current = Date.now();
-      currentUserSpeechRef.current = '';
-      console.log('🎤 Started user speech transcription');
-      
-      // Initialize speech recognition if supported and not already running
-      if (isSpeechRecognitionSupported && !speechRecognitionRef.current) {
-        try {
-          const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-          speechRecognitionRef.current = new SpeechRecognition();
-          speechRecognitionRef.current.continuous = true;
-          speechRecognitionRef.current.interimResults = true;
-          speechRecognitionRef.current.lang = 'en-US';
-          
-          speechRecognitionRef.current.onresult = (event) => {
-            let transcript = '';
-            // Concatenate all results (previous finals + current interim/final)
-            for (let i = 0; i < event.results.length; i++) {
-              transcript += event.results[i][0].transcript;
-            }
-            currentUserSpeechRef.current = transcript.trim();
-            
-            // Log for debugging (final if last result is final, else interim)
-            if (event.results.length > 0 && event.results[event.results.length - 1].isFinal) {
-              console.log('🎤 User speech (final):', currentUserSpeechRef.current);
-            } else {
-              console.log('🎤 User speech (interim):', currentUserSpeechRef.current);
-            }
-          };
-          
-          speechRecognitionRef.current.onerror = (event) => {
-            console.warn('Speech recognition error:', event.error);
-            if (currentUserSpeechRef.current.trim() && event.error !== 'no-speech') {
-              const duration = (Date.now() - speechStartTimeRef.current) / 1000;
-              addTranscriptionEntry('user', currentUserSpeechRef.current.trim(), duration);
-            }
-          };
-          
-          speechRecognitionRef.current.onend = () => {
-            console.log('Speech recognition ended');
-            // Add transcription here if content exists (duration from start time)
-            if (isUserSpeakingForTranscriptionRef.current && currentUserSpeechRef.current.trim()) {
-              const duration = (Date.now() - speechStartTimeRef.current) / 1000;
-              addTranscriptionEntry('user', currentUserSpeechRef.current.trim(), duration);
-              console.log('🤫 Added final user transcription on end:', currentUserSpeechRef.current.trim());
-            }
-            speechRecognitionRef.current = null;
-            isUserSpeakingForTranscriptionRef.current = false;
-            currentUserSpeechRef.current = '';
-          };
-          
-          speechRecognitionRef.current.start();
-          console.log('🎤 Speech recognition started');
-        } catch (error) {
-          console.warn('Failed to initialize speech recognition:', error);
-        }
-      } else if (speechRecognitionRef.current) {
-        // If speech recognition exists, try to restart it
-        try {
-          speechRecognitionRef.current.start();
-          console.log('🎤 Speech recognition restarted');
-        } catch (error) {
-          console.warn('Failed to restart speech recognition:', error);
-        }
-      }
-    }
-  }, [isSpeechRecognitionSupported]);
-
-  const stopUserSpeechTranscription = useCallback(() => {
-    if (isUserSpeakingForTranscriptionRef.current) {
-      // Delay to allow final processing, but don't add here—wait for onend
-      setTimeout(() => {
-        if (speechRecognitionRef.current) {
-          try {
-            speechRecognitionRef.current.stop();
-            console.log('🎤 Speech recognition stopped');
-          } catch (error) {
-            console.warn('Error stopping speech recognition:', error);
-          }
-        }
-      }, 1500); // Reduced delay for faster response
-    }
-  }, [addTranscriptionEntry]);
-
-  const startAISpeechTranscription = useCallback(() => {
-    if (!isAISpeakingForTranscriptionRef.current) {
-      isAISpeakingForTranscriptionRef.current = true;
-      aiResponseStartTimeRef.current = Date.now();
-      currentAISpeechRef.current = '';
-      console.log('🤖 Started AI speech transcription');
-      
-      // For TEXT agents, we'll track the response duration
-      // The actual text content will come from the agent's response
-    }
-  }, []);
-
-  const stopAISpeechTranscription = useCallback(() => {
-    if (isAISpeakingForTranscriptionRef.current) {
-      const duration = (Date.now() - aiResponseStartTimeRef.current) / 1000;
-      
-      // For TEXT agents, we need to get the response from the agent
-      // Since we don't have the actual text, we'll add a placeholder
-      // In a real implementation, you'd get this from the agent's response
-      if (currentAISpeechRef.current.trim()) {
-        addTranscriptionEntry('ai', currentAISpeechRef.current.trim(), duration);
-        console.log('🤖 Added AI transcription:', currentAISpeechRef.current.trim());
-      } else {
-        // Skip adding placeholder - only add meaningful content
-        console.log(`🤖 Skipping AI transcription placeholder (duration: ${duration}s)`);
-      }
-      
-      isAISpeakingForTranscriptionRef.current = false;
-      currentAISpeechRef.current = '';
-      
-      // Don't stop AI speech recognition here, just mark it as inactive
-      // This allows it to be restarted when needed
-      aiSpeechRecognitionActiveRef.current = false;
-      console.log('🔇 Stopped AI speech transcription');
-    }
-  }, [addTranscriptionEntry]);
-
-  const updateUserSpeechTranscription = useCallback((text: string) => {
-    if (isUserSpeakingForTranscriptionRef.current) {
-      currentUserSpeechRef.current = text;
-    }
-  }, []);
-
-  const updateAISpeechTranscription = useCallback((text: string) => {
-    if (isAISpeakingForTranscriptionRef.current) {
-      currentAISpeechRef.current = text;
-      console.log('🤖 Updated AI speech transcription:', text);
-    }
-  }, []);
-
-  // Method to add AI response text for TEXT agents
-  const addAIResponseText = useCallback((text: string) => {
-    if (isAISpeakingForTranscriptionRef.current) {
-      currentAISpeechRef.current = text;
-      console.log('🤖 Added AI response text:', text);
-    } else {
-      // If AI is not currently speaking, start transcription and add text
-      startAISpeechTranscription();
-      currentAISpeechRef.current = text;
-      console.log('🤖 Started AI transcription with text:', text);
-    }
-  }, [startAISpeechTranscription]);
-
-  // Method to handle when AI starts speaking (for TEXT agents)
-  const onAIStartsSpeaking = useCallback(() => {
-    console.log('🤖 AI started speaking - starting transcription');
-    startAISpeechTranscription();
-  }, [startAISpeechTranscription]);
-
-  // Method to handle when AI stops speaking (for TEXT agents)
-  const onAIStopsSpeaking = useCallback(() => {
-    console.log('🤖 AI stopped speaking - stopping transcription');
-    stopAISpeechTranscription();
-    
-    // Small delay before allowing user speech to start again
-    setTimeout(() => {
-      console.log('🔄 Ready for user speech after AI response');
-    }, 500);
-  }, [stopAISpeechTranscription]);
-
-  const saveTranscription = useCallback(async () => {
-    if (transcription.length === 0) {
-      console.log('📝 No transcription to save');
-      return;
-    }
-
-    try {
-      // Create a formatted transcription text with only meaningful entries
-      const meaningfulEntries = transcription.filter(entry => cleanTranscriptionText(entry.text).length > 0);
-      
-      if (meaningfulEntries.length === 0) {
-        console.log('📝 No meaningful transcription to save');
-        toast.info('No meaningful transcription to save');
-        return;
-      }
-
-      const formattedText = meaningfulEntries.map(entry => {
-        const time = entry.timestamp.toLocaleTimeString();
-        const speaker = entry.speaker === 'user' ? 'User' : 'AI';
-        const duration = entry.duration ? ` (${entry.duration.toFixed(1)}s)` : '';
-        const cleanText = cleanTranscriptionText(entry.text);
-        return `[${time}] ${speaker}${duration}: ${cleanText}`;
-      }).join('\n\n');
-
-      // Create a blob with the transcription
-      const blob = new Blob([formattedText], { type: 'text/plain' });
-      
-      // Create download link
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `transcription_${agentId || 'session'}.txt`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      console.log('💾 Transcription saved successfully');
-      toast.success('Transcription saved successfully!');
-    } catch (error) {
-      console.error('❌ Error saving transcription:', error);
-      toast.error('Failed to save transcription');
-    }
-  }, [transcription, agentId, cleanTranscriptionText]);
-
-  const clearTranscription = useCallback(() => {
-    setTranscription([]);
-    currentUserSpeechRef.current = '';
-    currentAISpeechRef.current = '';
-    isUserSpeakingForTranscriptionRef.current = false;
-    isAISpeakingForTranscriptionRef.current = false;
-    console.log('🧹 Transcription cleared');
-  }, []);
+  }, [executeImmediateInterruption]);
 
   const stopSpeechDetection = useCallback(() => {
     if (speechContextRef.current && speechContextRef.current.state !== 'closed') {
@@ -808,11 +425,6 @@ const useHumeInference = ({
           const nextChunk = audioStreamQueue.current.shift();
           streamAudioChunk(nextChunk!.blob, nextChunk!.mimeType);
         } else if (audioStreamQueue.current.length === 0) {
-          // Stop AI speech transcription when stream ends
-          if (aiSpeechRecognitionRef.current && aiSpeechRecognitionActiveRef.current) {
-            aiSpeechRecognitionRef.current.stop();
-            aiSpeechRecognitionActiveRef.current = false;
-          }
           // Reset timing when stream ends
           nextPlayTimeRef.current = 0;
           lastChunkEndTimeRef.current = 0;
@@ -906,101 +518,9 @@ const useHumeInference = ({
     isPlayingRef.current = false;
     isUserSpeakingRef.current = false;
     setHasPermissions(false);
-    
-    // Clear transcription
-    clearTranscription();
-    
-    // Stop speech recognition
-    if (speechRecognitionRef.current) {
-      try {
-        speechRecognitionRef.current.stop();
-        speechRecognitionRef.current = null;
-        console.log('🎤 Speech recognition stopped during cleanup');
-      } catch (error) {
-        console.warn('Error stopping speech recognition during cleanup:', error);
-      }
-    }
-
-    // Stop AI speech recognition
-    if (aiSpeechRecognitionRef.current) {
-      try {
-        aiSpeechRecognitionRef.current.stop();
-        aiSpeechRecognitionRef.current = null;
-        aiSpeechRecognitionActiveRef.current = false;
-        console.log('🤖 AI speech recognition stopped during cleanup');
-      } catch (error) {
-        console.warn('Error stopping AI speech recognition during cleanup:', error);
-      }
-    }
 
     console.log('✅ Cleanup completed');
-  }, [executeImmediateInterruption, stopSpeechDetection, clearTranscription]);
-
-  const restartAISpeechRecognition = useCallback(() => {
-    // Only restart if we have an existing recognition instance and it's not active
-    if (aiSpeechRecognitionRef.current && !aiSpeechRecognitionActiveRef.current) {
-      try {
-        aiSpeechRecognitionRef.current.start();
-        aiSpeechRecognitionActiveRef.current = true;
-        console.log('🤖 AI speech recognition restarted');
-      } catch (error) {
-        console.warn('Failed to restart AI speech recognition:', error);
-        // If restart fails, create a new instance
-        aiSpeechRecognitionRef.current = null;
-        aiSpeechRecognitionActiveRef.current = false;
-      }
-    } else if (!aiSpeechRecognitionRef.current) {
-      // Create new instance if none exists
-      try {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        aiSpeechRecognitionRef.current = new SpeechRecognition();
-        aiSpeechRecognitionRef.current.continuous = true;
-        aiSpeechRecognitionRef.current.interimResults = true;
-        aiSpeechRecognitionRef.current.lang = 'en-US';
-        aiSpeechRecognitionRef.current.onresult = (event) => {
-          let transcript = '';
-          for (let i = 0; i < event.results.length; i++) {
-            transcript += event.results[i][0].transcript;
-          }
-          currentAISpeechRef.current = transcript.trim();
-          if (event.results.length > 0 && event.results[event.results.length - 1].isFinal) {
-            console.log('🤖 AI speech (final):', currentAISpeechRef.current);
-          } else {
-            console.log('🤖 AI speech (interim):', currentAISpeechRef.current);
-          }
-        };
-        aiSpeechRecognitionRef.current.onerror = (event) => {
-          console.warn('AI speech recognition error:', {
-            error: event.error,
-            message: event.message
-          });
-          if (event.error === 'aborted' && currentAISpeechRef.current.trim()) {
-            const duration = (Date.now() - aiResponseStartTimeRef.current) / 1000;
-            addTranscriptionEntry('ai', currentAISpeechRef.current.trim(), duration);
-            // Don't auto-restart on abort, let the system handle it
-          } else if (event.error !== 'no-speech') {
-            const duration = (Date.now() - aiResponseStartTimeRef.current) / 1000;
-            addTranscriptionEntry('ai', currentAISpeechRef.current.trim(), duration);
-          }
-          aiSpeechRecognitionActiveRef.current = false;
-        };
-        aiSpeechRecognitionRef.current.onend = () => {
-          console.log('AI speech recognition ended');
-          if (isAISpeakingForTranscriptionRef.current && currentAISpeechRef.current.trim()) {
-            const duration = (Date.now() - aiResponseStartTimeRef.current) / 1000;
-            addTranscriptionEntry('ai', currentAISpeechRef.current.trim(), duration);
-          }
-          aiSpeechRecognitionActiveRef.current = false;
-          // Don't nullify the reference, keep it for reuse
-        };
-        aiSpeechRecognitionRef.current.start();
-        aiSpeechRecognitionActiveRef.current = true;
-        console.log('🤖 AI speech recognition created and started');
-      } catch (error) {
-        console.warn('Failed to create AI speech recognition:', error);
-      }
-    }
-  }, [addTranscriptionEntry]);
+  }, [executeImmediateInterruption, stopSpeechDetection]);
 
   // Connect to LiveKit room for TEXT agents (simplified version of VoiceAssistant approach)
   const connectToLiveKitRoom = useCallback(async (sessionData: any) => {
@@ -1062,87 +582,33 @@ const useHumeInference = ({
             muted: publication.isMuted,
             enabled: publication.isEnabled
           });
-      
-          // Create audio element for playback
+
+          // Attach audio track for playback
           const audioElement = track.attach() as HTMLAudioElement;
           audioElement.autoplay = true;
           audioElement.volume = 1.0;
           audioElement.setAttribute('data-livekit-track', 'text-agent-audio');
-      
-          // Create a MediaStream from the audio element for speech recognition
-          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-          const source = audioContext.createMediaElementSource(audioElement);
-          const destination = audioContext.createMediaStreamDestination();
-          source.connect(destination);
-          const capturedStream = destination.stream;
-      
-          if (capturedStream && isSpeechRecognitionSupported) {
-            try {
-              const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-              aiSpeechRecognitionRef.current = new SpeechRecognition();
-              aiSpeechRecognitionRef.current.continuous = true;
-              aiSpeechRecognitionRef.current.interimResults = true;
-              aiSpeechRecognitionRef.current.lang = 'en-US';
-      
-              aiSpeechRecognitionRef.current.onresult = (event) => {
-                let transcript = '';
-                for (let i = 0; i < event.results.length; i++) {
-                  transcript += event.results[i][0].transcript;
-                }
-                currentAISpeechRef.current = transcript.trim();
-                if (event.results.length > 0 && event.results[event.results.length - 1].isFinal) {
-                  console.log('🤖 AI speech (final):', currentAISpeechRef.current);
-                } else {
-                  console.log('🤖 AI speech (interim):', currentAISpeechRef.current);
-                }
-              };
-      
-              aiSpeechRecognitionRef.current.onerror = (event) => {
-                console.warn('AI speech recognition error:', {
-                  error: event.error,
-                  message: event.message
-                });
-                if (currentAISpeechRef.current.trim() && event.error !== 'no-speech') {
-                  const duration = (Date.now() - aiResponseStartTimeRef.current) / 1000;
-                  addTranscriptionEntry('ai', currentAISpeechRef.current.trim(), duration);
-                }
-                aiSpeechRecognitionActiveRef.current = false;
-              };
-      
-              aiSpeechRecognitionRef.current.onend = () => {
-                console.log('AI speech recognition ended');
-                if (isAISpeakingForTranscriptionRef.current && currentAISpeechRef.current.trim()) {
-                  const duration = (Date.now() - aiResponseStartTimeRef.current) / 1000;
-                  addTranscriptionEntry('ai', currentAISpeechRef.current.trim(), duration);
-                }
-                aiSpeechRecognitionActiveRef.current = false;
-                // Don't nullify the reference, keep it for reuse
-              };
-      
-              // Start speech recognition with the captured stream
-              aiSpeechRecognitionRef.current.start();
-              aiSpeechRecognitionActiveRef.current = true;
-              console.log('🤖 AI speech recognition started on captured stream');
-            } catch (error) {
-              console.warn('Failed to initialize AI speech recognition:', error);
-            }
-          }
-      
+          
+          // Enhanced logging for TEXT agent audio
           audioElement.onplay = () => {
             console.log('▶️ TEXT Agent audio started playing');
-            startAISpeechTranscription();
-            onAIStartsSpeaking();
+            console.log('🎵 Audio element state:', {
+              volume: audioElement.volume,
+              muted: audioElement.muted,
+              duration: audioElement.duration,
+              currentTime: audioElement.currentTime
+            });
           };
-      
+          
           audioElement.onended = () => {
             console.log('🔚 TEXT Agent audio ended');
-            onAIStopsSpeaking();
           };
-      
+          
           audioElement.onerror = (error) => {
             console.error('❌ TEXT Agent audio error:', error);
           };
-      
+
+          // Add to document for playback
           document.body.appendChild(audioElement);
           console.log('🔊 TEXT Agent audio element attached to DOM');
         }
@@ -1417,11 +883,6 @@ const useHumeInference = ({
 
           // Handle audio chunks with real-time streaming and quality preservation
           if (data.audio) {
-            // Start AI speech transcription when first audio chunk is received
-            if (nextPlayTimeRef.current === 0) {
-              startAISpeechTranscription();
-            }
-            
             // Detect and preserve the best audio format from VoiceCake
             const audioFormat = data.audio_format || data.format || 'audio/wav';
             const isHighQualityFormat = audioFormat.includes('webm') || audioFormat.includes('opus') || audioFormat.includes('mp3');
@@ -1454,6 +915,7 @@ const useHumeInference = ({
                 console.log(`📦 Queued chunk for streaming, queue size: ${audioStreamQueue.current.length}`);
               } else {
                 // Queue is full: still enqueue latest to keep audio flowing, but drop oldest to cap latency
+                audioStreamQueue.current.shift();
                 audioStreamQueue.current.push({ blob: audioBlob, mimeType: audioFormat });
                 console.log(`🔄 Queue full, dropped oldest. Queue size: ${audioStreamQueue.current.length}`);
               }
@@ -1560,26 +1022,6 @@ const useHumeInference = ({
   // Stop inference
 
   const stopInference = useCallback(async () => {
-    // Stop any ongoing transcription
-    stopUserSpeechTranscription();
-    stopAISpeechTranscription();
-    
-    // Ensure AI speech recognition is properly stopped
-    if (aiSpeechRecognitionRef.current && aiSpeechRecognitionActiveRef.current) {
-      try {
-        aiSpeechRecognitionRef.current.stop();
-        aiSpeechRecognitionActiveRef.current = false;
-        console.log('🤖 AI speech recognition stopped during inference stop');
-      } catch (error) {
-        console.warn('Error stopping AI speech recognition during inference stop:', error);
-      }
-    }
-    
-    // Save transcription if there's content
-    if (transcription.length > 0) {
-      await saveTranscription();
-    }
-    
     // For TEXT agents using LiveKit sessions, properly end the session
     if ((agentDetails?.agent_type === 'TEXT' || agentDetails?.type === 'TEXT') && sessionData) {
       try {
@@ -1610,7 +1052,7 @@ const useHumeInference = ({
     setHasPermissions(false);
     toast.success("Inference stopped");
 
-  }, [cleanup, agentDetails, sessionData, transcription, saveTranscription, stopUserSpeechTranscription, stopAISpeechTranscription]);
+  }, [cleanup, agentDetails, sessionData]);
 
 
 
@@ -1637,17 +1079,29 @@ const useHumeInference = ({
         toast.success("Microphone muted");
 
       } else {
+
         toast.success("Microphone unmuted");
+
       }
+
     }
+
   }, [isMicOn]);
 
+
+
   // Cleanup on unmount
+
   useEffect(() => {
+
     return () => {
+
       cleanup();
+
     };
+
   }, [cleanup]);
+
 
 
   return {
@@ -1663,17 +1117,12 @@ const useHumeInference = ({
     clearCachedPermissions,
     sessionData, // Expose session data for TEXT agents
     mediaStream: mediaStreamRef.current,
-    // Transcription data and methods
-    transcription,
-    isTranscribing,
-    saveTranscription,
-    clearTranscription,
-    addAIResponseText, // Method to add AI response text for TEXT agents
-    onAIStartsSpeaking, // Method to handle AI speech start
-    onAIStopsSpeaking, // Method to handle AI speech stop
-    transcriptionUpdateTrigger
   };
 
 };
 
+
+
 export default useHumeInference;
+
+
