@@ -143,6 +143,12 @@ export function EditAgentModal({ isOpen, onClose, onSubmit, agent }: EditAgentMo
     
     if (!agent) return;
     
+    // Validate description length
+    if (formData.description.length > 1500) {
+      toast.error("Description cannot exceed 1,500 characters");
+      return;
+    }
+    
     // Validate required fields based on agent type
     if (selectedAgentType === 'SPEECH') {
       if (!formData.name || !formData.description || !formData.voice_provider || !formData.voice || !formData.model_resource) {
@@ -235,14 +241,27 @@ export function EditAgentModal({ isOpen, onClose, onSubmit, agent }: EditAgentMo
               
               <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Describe what this agent does and how it helps users..."
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  rows={3}
-                  required
-                />
+                <div className="space-y-1">
+                  <Textarea
+                    id="description"
+                    placeholder="Describe what this agent does and how it helps users..."
+                    value={formData.description}
+                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    rows={3}
+                    required
+                    maxLength={1500}
+                  />
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground">
+                      {formData.description.length}/1,500 characters
+                    </span>
+                    {formData.description.length > 1400 && (
+                      <span className="text-xs text-orange-500">
+                        {1500 - formData.description.length} characters remaining
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 
