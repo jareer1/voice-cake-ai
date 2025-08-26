@@ -1,6 +1,10 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
 import api, { authAPI } from "../pages/services/api";
-import { isRefreshTokenExpired } from "@/utils/authUtils";
+import { 
+  isRefreshTokenExpired, 
+  getErrorMessage, 
+  safeLogError 
+} from "@/utils/authUtils";
 
 interface AuthContextType {
   user: any;
@@ -56,7 +60,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       return res;
     } catch (err: any) {
-      throw new Error(err.response?.data?.detail || "Login failed");
+      const errorMessage = getErrorMessage(err);
+      throw new Error(errorMessage);
     }
   };
 
@@ -67,7 +72,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(res.data.user);
       return res.data;
     } catch (err: any) {
-      throw new Error(err.response?.data?.detail || "Signup failed");
+      const errorMessage = getErrorMessage(err);
+      throw new Error(errorMessage);
     }
   };
 
@@ -98,17 +104,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log("✅ Token refresh successful");
       return true;
     } catch (err: any) {
-      console.error("❌ Token refresh failed:", err);
+      // Safe logging without exposing sensitive data
+      safeLogError(err, 'Token Refresh Failed in Auth Context');
       
       // Check if it's due to expired refresh token
       const refreshTokenExpired = isRefreshTokenExpired(err);
-      
-      console.log('🔄 Refresh token expired check:', {
-        status: err.response?.status,
-        message: err.message,
-        detail: err.response?.data?.detail,
-        isRefreshTokenExpired: refreshTokenExpired
-      });
       
       // Clear invalid tokens
       setToken(null);
@@ -147,8 +147,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log("⚠️ No refresh token found, skipping API call");
       }
     } catch (err: any) {
-      console.error("❌ Logout API call failed:", err);
-      console.error("❌ Error details:", err.response?.data || err.message);
+      // Safe logging without exposing sensitive data
+      safeLogError(err, 'Logout API Call Failed');
       // Continue with local logout even if API call fails
     } finally {
       console.log("🧹 Clearing local state and storage...");
@@ -171,7 +171,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const res = await authAPI.requestPasswordReset(email);
       return res;
     } catch (err: any) {
-      throw new Error(err.response?.data?.detail || "Password reset request failed");
+      const errorMessage = getErrorMessage(err);
+      throw new Error(errorMessage);
     }
   };
 
@@ -180,7 +181,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const res = await authAPI.resetPassword(token, newPassword);
       return res;
     } catch (err: any) {
-      throw new Error(err.response?.data?.detail || "Password reset failed");
+      const errorMessage = getErrorMessage(err);
+      throw new Error(errorMessage);
     }
   };
 

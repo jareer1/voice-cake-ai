@@ -2,7 +2,27 @@ import axios from "axios";
 import config from "@/lib/config";
 import { VoiceCloneCreate, VoiceCloneResponse } from "@/types/voice";
 import { toast } from "sonner";
-import { handleRefreshTokenExpiration, isRefreshTokenExpired } from "@/utils/authUtils";
+import { 
+  handleRefreshTokenExpiration, 
+  isRefreshTokenExpired, 
+  isRateLimitError,
+  getErrorMessage,
+  safeLogError,
+  ErrorCode
+} from "@/utils/authUtils";
+
+// Utility function to handle standardized backend responses
+const handleApiResponse = (response: any, fallback?: any) => {
+  if (response.data && typeof response.data === 'object') {
+    if (response.data.success === true && response.data.data !== undefined) {
+      return response.data.data;
+    }
+    if (!response.data.success && response.data.message) {
+      throw new Error(response.data.message);
+    }
+  }
+  return fallback !== undefined ? fallback : response.data;
+};
 
 const api = axios.create({
   // baseURL: "/api-proxy",
@@ -56,40 +76,33 @@ api.interceptors.response.use(
     const originalRequest = error.config;
     
     // Handle rate limiting (429 status code)
-    if (error.response?.status === 429) {
-      const responseData = error.response.data;
+    if (isRateLimitError(error)) {
+      const responseData = error.response?.data;
       
-      // Check if it's our specific rate limiting response format
-      if (responseData && responseData.success === false && responseData.message === "Too many requests. Please try again later.") {
-        const retryAfter = responseData.retry_after || 60;
-        
+      // Use standardized error message if available
+      if (responseData?.success === false && responseData?.message) {
+        toast.error(responseData.message, {
+          duration: 5000,
+          position: "top-right"
+        });
+      } else {
+        // Fallback to generic rate limit message
+        const retryAfter = responseData?.retry_after || error.response?.headers['retry-after'] || 60;
         toast.error(
-          `Too many requests. Please wait ${retryAfter} seconds before trying again.`,
+          `Rate limit exceeded. Please wait ${retryAfter} seconds before trying again.`,
           {
             duration: 5000,
             position: "top-right"
           }
         );
-        
-        return Promise.reject(error);
       }
-      
-      // Handle other rate limiting responses
-      const retryAfter = responseData?.retry_after || error.response.headers['retry-after'] || 60;
-      
-      toast.error(
-        `Rate limit exceeded. Please wait ${retryAfter} seconds before trying again.`,
-        {
-          duration: 5000,
-          position: "top-right"
-        }
-      );
       
       return Promise.reject(error);
     }
     
     // If error is 401 and we haven't tried to refresh yet
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Skip token refresh for authentication requests to allow proper error handling
+    if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/auth/')) {
       if (isRefreshing) {
         // If already refreshing, queue this request
         return new Promise((resolve, reject) => {
@@ -129,12 +142,8 @@ api.interceptors.response.use(
         // Refresh failed - check if it's due to expired refresh token
         const refreshTokenExpired = isRefreshTokenExpired(refreshError);
         
-        console.log('🔄 Token refresh failed:', {
-          status: refreshError.response?.status,
-          message: refreshError.message,
-          detail: refreshError.response?.data?.detail,
-          isRefreshTokenExpired: refreshTokenExpired
-        });
+        // Safe logging without exposing sensitive data
+        safeLogError(refreshError, 'Token Refresh Failed');
         
         // Process queued requests with error
         processQueue(refreshError, null);
@@ -143,8 +152,9 @@ api.interceptors.response.use(
         if (refreshTokenExpired) {
           handleRefreshTokenExpiration();
         } else {
-          // For other authentication errors, show generic message
-          toast.error("Authentication failed. Please log in again.", {
+          // For other authentication errors, show user-friendly message
+          const errorMessage = getErrorMessage(refreshError);
+          toast.error(errorMessage, {
             duration: 5000,
             position: "top-right"
           });
@@ -186,17 +196,17 @@ export const agentAPI = {
     tool_ids?: string[];
   }) => {
     const response = await api.post('/agents/', agentData);
-    return response.data;
+    return handleApiResponse(response);
   },
   
   getAgents: async () => {
     const response = await api.get('/agents/');
-    return response.data;
+    return handleApiResponse(response, []);
   },
   
   getAgent: async (id: string) => {
     const response = await api.get(`/agents/${id}`);
-    return response.data;
+    return handleApiResponse(response);
   },
   
   updateAgent: async (id: string, agentData: {
@@ -211,12 +221,12 @@ export const agentAPI = {
     tool_ids?: string[];
   }) => {
     const response = await api.put(`/agents/${id}`, agentData);
-    return response.data;
+    return handleApiResponse(response);
   },
   
   deleteAgent: async (id: string) => {
     const response = await api.delete(`/agents/${id}`);
-    return response.data;
+    return handleApiResponse(response);
   }
 };
 
@@ -224,7 +234,7 @@ export const agentAPI = {
 export const toolsAPI = {
   getTools: async () => {
     const response = await api.get('/tools/');
-    return response.data;
+    return handleApiResponse(response, []);
   }
 };
 
@@ -232,27 +242,27 @@ export const toolsAPI = {
 export const authAPI = {
   login: async (username: string, password: string) => {
     const response = await api.post('/auth/login', { username, password });
-    return response.data;
+    return handleApiResponse(response);
   },
   
   signup: async (email: string, username: string, password: string) => {
     const response = await api.post('/auth/register', { email, username, password });
-    return response.data;
+    return handleApiResponse(response);
   },
   
   refreshToken: async (refreshToken: string) => {
     const response = await api.post('/auth/refresh', { refresh_token: refreshToken });
-    return response.data;
+    return handleApiResponse(response);
   },
   
   logout: async (refreshToken: string) => {
     const response = await api.post('/auth/logout', { refresh_token: refreshToken });
-    return response.data;
+    return handleApiResponse(response);
   },
   
   requestPasswordReset: async (email: string) => {
     const response = await api.post('/auth/forgot-password', { email });
-    return response.data;
+    return handleApiResponse(response);
   },
   
   resetPassword: async (token: string, newPassword: string) => {
@@ -260,7 +270,7 @@ export const authAPI = {
       token, 
       new_password: newPassword 
     });
-    return response.data;
+    return handleApiResponse(response);
   }
 };
 
@@ -268,17 +278,17 @@ export const authAPI = {
 export const voiceCloneAPI = {
   getVoiceClones: async (): Promise<VoiceCloneResponse[]> => {
     const response = await api.get('/voice-clones/');
-    return response.data;
+    return handleApiResponse(response, []) as VoiceCloneResponse[];
   },
   
   getVoiceClone: async (id: number): Promise<VoiceCloneResponse> => {
     const response = await api.get(`/voice-clones/${id}`);
-    return response.data;
+    return handleApiResponse(response) as VoiceCloneResponse;
   },
   
   deleteVoiceClone: async (id: string): Promise<void> => {
     const response = await api.delete(`/voice-clones/${id}`);
-    return response.data;
+    return handleApiResponse(response);
   },
   
   // Create voice clone with audio file (required by backend)
@@ -297,7 +307,7 @@ export const voiceCloneAPI = {
     }
     
     const response = await api.post('/voice-clones/', formData);
-    return response.data;
+    return handleApiResponse(response) as VoiceCloneResponse;
   }
 };
 
@@ -308,7 +318,7 @@ export const liveKitAPI = {
       agent_id: agentId,
       participant_name: participantName || `User_${Date.now()}`
     });
-    return response.data;
+    return handleApiResponse(response);
   }
 };
 
