@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { handleRefreshTokenExpiration, isAuthenticationError } from "@/utils/authUtils";
 import { AppLayout } from "./components/layout/AppLayout";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
@@ -29,7 +30,19 @@ import LiveKitTest from "./pages/LiveKitTest";
 import Tools from "./pages/Tools";
 import ApiKeys from "./pages/ApiKeys";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: (failureCount, error: any) => {
+        // Don't retry on authentication errors
+        if (isAuthenticationError(error)) {
+          return false;
+        }
+        return failureCount < 3;
+      }
+    }
+  }
+});
 
 const App = () => {
   return (

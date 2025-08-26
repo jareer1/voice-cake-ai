@@ -9,6 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Mic, MicOff, Phone, PhoneOff, Volume2, VolumeX } from "lucide-react";
 import config from "@/lib/config";
+import { liveKitAPI } from "@/pages/services/api";
+import { useAuth } from "@/context/authContext";
+import { isAuthenticationError } from "@/utils/authUtils";
 
 interface VoiceAssistantProps {
   apiUrl?: string;
@@ -25,6 +28,7 @@ interface SessionData {
 
 export default function VoiceAssistant({ apiUrl }: VoiceAssistantProps) {
   const baseUrl = apiUrl || config.api.baseURL;
+  const { isAuthenticated, logout } = useAuth();
   
   const [sessionData, setSessionData] = useState<SessionData | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -102,7 +106,7 @@ export default function VoiceAssistant({ apiUrl }: VoiceAssistantProps) {
       
       if (isSpeechRecognitionSupported) {
         try {
-          const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+          const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
           
           // Enhanced user speech recognition for LiveKit
           const enhancedUserRecognition = new SpeechRecognition();
@@ -229,24 +233,49 @@ export default function VoiceAssistant({ apiUrl }: VoiceAssistantProps) {
         try {
       console.log('🚀 Starting LiveKit session...');
       
-      // Start a new session - this will create the agent
-      const response = await fetch(`${baseUrl}/livekit/session/start`, {
-         method: 'POST',
-         headers: {
-           'Content-Type': 'application/json',
-         },
-         body: JSON.stringify({
-           participant_name: participantName,
-           ...(agentInstructions.trim() && { agent_instructions: agentInstructions.trim() })
-         }),
-       });
+      // Check if we have authentication token
+      const authToken = localStorage.getItem('authToken');
+      let sessionData: SessionData;
+      
+      if (authToken) {
+        // Use authenticated API service with automatic token refresh
+        try {
+          const response = await liveKitAPI.createSession('', participantName);
+          sessionData = response as SessionData;
+        } catch (error: any) {
+          console.error('Failed to start authenticated session:', error);
+          
+          // Check if it's an authentication error
+          const authError = isAuthenticationError(error);
+          
+          if (authError) {
+            console.log('🔐 Authentication error detected, logging out user');
+            await logout();
+            throw new Error('Your session has expired. Please log in again.');
+          }
+          
+          throw new Error(error.response?.data?.detail || error.message || 'Failed to start session');
+        }
+      } else {
+        // Use direct fetch for public sessions
+        const response = await fetch(`${baseUrl}/livekit/session/start`, {
+           method: 'POST',
+           headers: {
+             'Content-Type': 'application/json',
+           },
+           body: JSON.stringify({
+             participant_name: participantName,
+             ...(agentInstructions.trim() && { agent_instructions: agentInstructions.trim() })
+           }),
+         });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to start session');
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || 'Failed to start session');
+        }
+
+        sessionData = await response.json();
       }
-
-      const sessionData: SessionData = await response.json();
       console.log('📋 Session created:', sessionData);
       setSessionData(sessionData);
       setAgentStatus('starting');

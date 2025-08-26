@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import config from "@/lib/config";
-import { agentAPI } from "@/pages/services/api";
+import { agentAPI, liveKitAPI } from "@/pages/services/api";
 import { publicAgentAPI } from "@/pages/services/publicApi";
 import { Room, RoomEvent, Track, TranscriptionSegment } from 'livekit-client';
 
@@ -1060,25 +1060,13 @@ const useHumeInference = ({
         const authToken = localStorage.getItem('authToken');
         if (authToken) {
           console.log('🔐 Using authenticated LiveKit session for private inference');
-          // Start LiveKit session for TEXT agent (simplified - only agentId required)
-          const response = await fetch(`${config.api.baseURL}/livekit/session/start`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${authToken}`
-            },
-            body: JSON.stringify({
-              agent_id: currentAgentId,
-              participant_name: `User_${Date.now()}` // Auto-generated participant name
-            }),
-          });
-
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.detail || 'Failed to start LiveKit session for TEXT agent');
+          // Start LiveKit session for TEXT agent using the API service with automatic token refresh
+          try {
+            sessionData = await liveKitAPI.createSession(currentAgentId, `User_${Date.now()}`);
+          } catch (error: any) {
+            console.error('Failed to start LiveKit session:', error);
+            throw new Error(error.response?.data?.detail || error.message || 'Failed to start LiveKit session for TEXT agent');
           }
-
-          sessionData = await response.json();
         } else {
           console.log('🌐 Using public LiveKit session for public inference');
           sessionData = await publicAgentAPI.createLiveKitSession(currentAgentId);

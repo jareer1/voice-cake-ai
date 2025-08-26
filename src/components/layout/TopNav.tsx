@@ -3,11 +3,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { CreateAgentModal } from "@/components/modals/CreateAgentModal";
 import { useSidebar } from "@/components/ui/sidebar";
+import { useAuth } from "@/context/authContext";
 
 export function TopNav() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { toggleSidebar } = useSidebar();
+  const { logout } = useAuth();
 
   return (
     <header className="h-24 bg-white px-6 flex items-center justify-between">
@@ -60,9 +62,16 @@ export function TopNav() {
           <div className="absolute right-6 mt-2 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
             <button
               className="w-full text-left px-4 py-2 text-black hover:bg-gray-100 rounded-lg font-inter text-base"
-              onClick={() => {
-                localStorage.clear();
-                window.location.href = '/auth/signin';
+              onClick={async () => {
+                try {
+                  await logout();
+                  // The logout function will handle the redirect
+                } catch (error) {
+                  console.error("Logout failed:", error);
+                  // Fallback to manual logout
+                  localStorage.clear();
+                  window.location.href = '/auth/signin';
+                }
               }}
             >
               Logout
