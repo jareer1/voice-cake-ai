@@ -6,26 +6,72 @@
     return new Promise((resolve, reject) => {
       // Check if already loaded (try both case variations)
       if (window.LiveKitClient || window.LivekitClient) {
-        console.log('LiveKit client library already loaded');
+        console.log('VoiceCake: LiveKit client library already loaded');
         resolve();
         return;
       }
       
-      // Wait for LiveKit to be available (it should be loaded by the page)
-      let attempts = 0;
-      const maxAttempts = 50; // 5 seconds
-      const checkInterval = setInterval(() => {
-        attempts++;
-        if (window.LiveKitClient || window.LivekitClient) {
-          clearInterval(checkInterval);
-          console.log('LiveKit client library detected after', attempts * 100, 'ms');
-          resolve();
-        } else if (attempts >= maxAttempts) {
-          clearInterval(checkInterval);
-          console.error('LiveKit client not found. Available globals:', Object.keys(window).filter(k => k.toLowerCase().includes('livekit')));
-          reject(new Error('LiveKit client library not available. Make sure it\'s loaded before the widget script.'));
-        }
-      }, 100);
+      // Check if already loading
+      const existingScript = document.querySelector('script[src*="livekit-client"]');
+      if (existingScript) {
+        console.log('VoiceCake: LiveKit client library already loading, waiting...');
+        let attempts = 0;
+        const checkInterval = setInterval(() => {
+          attempts++;
+          if (window.LiveKitClient || window.LivekitClient) {
+            clearInterval(checkInterval);
+            console.log('VoiceCake: LiveKit client library loaded from existing script');
+            resolve();
+          } else if (attempts > 50) {
+            clearInterval(checkInterval);
+            reject(new Error('VoiceCake: LiveKit client library not available after script load'));
+          }
+        }, 100);
+        return;
+      }
+      
+      // Load LiveKit client library with multiple fallback sources
+      console.log('VoiceCake: Loading LiveKit client library...');
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/livekit-client@2.15.5/dist/livekit-client.umd.js';
+      
+      script.onload = function() {
+        console.log('VoiceCake: LiveKit client library loaded from unpkg');
+        // Wait a bit for the library to initialize
+        setTimeout(() => {
+          if (window.LiveKitClient || window.LivekitClient) {
+            resolve();
+          } else {
+            reject(new Error('VoiceCake: LiveKit client library not available after load'));
+          }
+        }, 500);
+      };
+      
+      script.onerror = function() {
+        console.log('VoiceCake: Failed to load from unpkg, trying jsDelivr...');
+        // Fallback to jsDelivr
+        const fallbackScript = document.createElement('script');
+        fallbackScript.src = 'https://cdn.jsdelivr.net/npm/livekit-client@2.15.5/dist/livekit-client.umd.js';
+        
+        fallbackScript.onload = function() {
+          console.log('VoiceCake: LiveKit client library loaded from jsDelivr');
+          setTimeout(() => {
+            if (window.LiveKitClient || window.LivekitClient) {
+              resolve();
+            } else {
+              reject(new Error('VoiceCake: LiveKit client library not available after fallback load'));
+            }
+          }, 500);
+        };
+        
+        fallbackScript.onerror = function() {
+          reject(new Error('VoiceCake: Failed to load LiveKit client library from all sources'));
+        };
+        
+        document.head.appendChild(fallbackScript);
+      };
+      
+      document.head.appendChild(script);
     });
   }
   
@@ -37,8 +83,8 @@
       size: 'medium',
       autoStart: false,
       showTranscription: true,
-      apiBaseUrl: 'http://127.0.0.1:8000/api/v1',
-      wsBaseUrl: 'ws://127.0.0.1:8000',
+      apiBaseUrl: 'https://voicecakedevelop-hrfygverfwe8g4bj.canadacentral-01.azurewebsites.net/api/v1',
+      wsBaseUrl: 'ws://voicecakedevelop-hrfygverfwe8g4bj.canadacentral-01.azurewebsites.net',
       humeEndpoint: '/api/v1/hume/ws/inference'
     },
     
@@ -81,6 +127,13 @@
       
       console.log('VoiceCake Widget: Creating widget elements...');
       this.createWidget();
+      
+      // Check if widget was created successfully
+      if (!this.elements.container) {
+        console.error('VoiceCake Widget: Failed to create widget elements');
+        return;
+      }
+      
       this.attachEventListeners();
       this.state.isInitialized = true;
       console.log('VoiceCake Widget: Initialization complete');
@@ -88,6 +141,12 @@
     
     createWidget: function() {
       console.log('VoiceCake Widget: Creating widget elements...');
+      
+      // Ensure document.body exists
+      if (!document.body) {
+        console.error('VoiceCake Widget: document.body not available');
+        return;
+      }
       
       const container = document.createElement('div');
       container.id = 'voicecake-widget-container';
@@ -162,6 +221,23 @@
               </svg>
             </button>
           </div>
+          
+          <!-- Audio Wave Visualization -->
+          <div class="voicecake-audio-wave" id="voicecake-audio-wave" style="display: none;">
+            <div class="voicecake-wave-container">
+              <div class="voicecake-wave-label">Voice Activity</div>
+              <div class="voicecake-wave-bars">
+                <div class="voicecake-wave-bar"></div>
+                <div class="voicecake-wave-bar"></div>
+                <div class="voicecake-wave-bar"></div>
+                <div class="voicecake-wave-bar"></div>
+                <div class="voicecake-wave-bar"></div>
+                <div class="voicecake-wave-bar"></div>
+                <div class="voicecake-wave-bar"></div>
+                <div class="voicecake-wave-bar"></div>
+              </div>
+            </div>
+          </div>
           <div class="voicecake-call-timer" id="voicecake-call-timer" style="display: none;">
             <div class="voicecake-timer-display">
               <span id="voicecake-timer-text">0:00</span>
@@ -180,20 +256,14 @@
         </div>
       `;
       
-      const overlay = document.createElement('div');
-      overlay.id = 'voicecake-widget-overlay';
-      overlay.className = 'voicecake-widget-overlay';
-      
       container.appendChild(button);
       container.appendChild(popup);
-      container.appendChild(overlay);
       document.body.appendChild(container);
       
       this.elements = {
         container,
         button,
         popup,
-        overlay,
         closeButton: document.getElementById('voicecake-widget-close'),
         startButton: document.getElementById('voicecake-start-btn'),
         stopButton: document.getElementById('voicecake-stop-btn'),
@@ -201,7 +271,9 @@
         statusIndicator: document.querySelector('.voicecake-status-indicator'),
         loadingSpinner: document.getElementById('voicecake-loading'),
         callTimer: document.getElementById('voicecake-call-timer'),
-        timerText: document.getElementById('voicecake-timer-text')
+        timerText: document.getElementById('voicecake-timer-text'),
+        audioWave: document.getElementById('voicecake-audio-wave'),
+        waveBars: document.querySelectorAll('#voicecake-audio-wave .voicecake-wave-bar')
       };
       
             console.log('VoiceCake Widget: Widget elements created and attached to DOM');
@@ -210,7 +282,16 @@
     attachEventListeners: function() {
       this.elements.button.addEventListener('click', () => this.togglePopup());
       this.elements.closeButton.addEventListener('click', () => this.closePopup());
-      this.elements.overlay.addEventListener('click', () => this.closePopup());
+      
+      // Add document click listener to close popup when clicking outside
+      this.refs.documentClickListener = (event) => {
+        if (this.isPopupOpen() && 
+            !this.elements.container.contains(event.target)) {
+          this.closePopup();
+        }
+      };
+      document.addEventListener('click', this.refs.documentClickListener);
+      
       this.elements.startButton.addEventListener('click', () => this.startInference());
       this.elements.stopButton.addEventListener('click', () => this.stopInference());
       this.elements.micButton.addEventListener('click', () => this.toggleMic());
@@ -226,12 +307,10 @@
     
     openPopup: function() {
       this.elements.popup.classList.add('voicecake-active');
-      this.elements.overlay.classList.add('voicecake-active');
     },
     
     closePopup: function() {
       this.elements.popup.classList.remove('voicecake-active');
-      this.elements.overlay.classList.remove('voicecake-active');
     },
     
     isPopupOpen: function() {
@@ -309,6 +388,7 @@
           this.showLoading(false);
           this.updateUI();
           this.startCallTimer();
+          this.showAudioWave();
           
           // Show a message that TEXT agents are supported
           this.updateStatusMessage('TEXT agent connected successfully!');
@@ -373,6 +453,15 @@
           mediaRecorder.ondataavailable = (event) => {
             if (event.data.size > 0 && this.refs.socket.readyState === WebSocket.OPEN) {
               this.refs.socket.send(event.data);
+              
+              // Simple user speaking detection based on audio data size
+              if (event.data.size > 1000) { // Threshold for speaking
+                this.startAudioWave();
+                // Stop wave after a short delay
+                setTimeout(() => {
+                  this.stopAudioWave();
+                }, 200);
+              }
             }
           };
           
@@ -382,6 +471,7 @@
           this.showLoading(false);
           this.updateUI();
           this.startCallTimer();
+          this.showAudioWave();
         }
         
       } catch (error) {
@@ -568,10 +658,12 @@
             
             audioElement.onplay = () => {
               console.log('▶️ TEXT Agent audio started playing');
+              this.startAudioWave();
             };
             
             audioElement.onended = () => {
               console.log('🔚 TEXT Agent audio ended');
+              this.stopAudioWave();
             };
             
             audioElement.onerror = (error) => {
@@ -662,9 +754,11 @@
         
         source.onended = () => {
           this.refs.isPlaying = false;
+          this.stopAudioWave();
           this.playNext();
         };
         
+        this.startAudioWave();
         source.start(0);
       } catch (error) {
         console.error('Error playing audio:', error);
@@ -761,10 +855,56 @@
       this.state.hasPermissions = false;
       this.refs.isPlaying = false;
       this.refs.audioQueue = [];
+      
+      // Stop audio wave animations
+      this.stopAudioWave();
+      this.hideAudioWave();
+    },
+    
+    // Audio Wave Control Functions
+    showAudioWave: function() {
+      if (this.elements.audioWave) {
+        this.elements.audioWave.style.display = 'block';
+      }
+    },
+    
+    hideAudioWave: function() {
+      if (this.elements.audioWave) {
+        this.elements.audioWave.style.display = 'none';
+      }
+    },
+    
+    startAudioWave: function() {
+      if (this.elements.waveBars) {
+        this.elements.waveBars.forEach(bar => {
+          bar.classList.add('voicecake-active');
+        });
+      }
+    },
+    
+    stopAudioWave: function() {
+      if (this.elements.waveBars) {
+        this.elements.waveBars.forEach(bar => {
+          bar.classList.remove('voicecake-active');
+        });
+      }
+    },
+    
+    hideAudioWave: function() {
+      if (this.elements.audioWave) {
+        this.elements.audioWave.style.display = 'none';
+      }
     },
     
     destroy: function() {
       this.cleanup();
+      
+      // Remove document event listener
+      if (this.refs.documentClickListener) {
+        document.removeEventListener('click', this.refs.documentClickListener);
+        this.refs.documentClickListener = null;
+      }
+      
       if (this.elements.container && this.elements.container.parentNode) {
         this.elements.container.parentNode.removeChild(this.elements.container);
       }
@@ -833,23 +973,7 @@
       transform: translateY(0);
     }
     
-    .voicecake-widget-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.3);
-      opacity: 0;
-      visibility: hidden;
-      transition: all 0.3s ease;
-      z-index: -1;
-    }
-    
-    .voicecake-widget-overlay.voicecake-active {
-      opacity: 1;
-      visibility: visible;
-    }
+
     
     .voicecake-widget-header {
       display: flex;
@@ -1185,6 +1309,66 @@
       100% { transform: rotate(360deg); }
     }
     
+    /* Audio Wave Visualization */
+    .voicecake-audio-wave {
+      margin: 16px 0;
+      padding: 16px;
+      background: rgba(102, 126, 234, 0.05);
+      border-radius: 12px;
+      border: 1px solid rgba(102, 126, 234, 0.1);
+    }
+    
+    .voicecake-wave-container {
+      margin-bottom: 12px;
+    }
+    
+    .voicecake-wave-container:last-child {
+      margin-bottom: 0;
+    }
+    
+    .voicecake-wave-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: #667eea;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+    
+    .voicecake-wave-bars {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      height: 40px;
+    }
+    
+    .voicecake-wave-bar {
+      width: 4px;
+      height: 4px;
+      background: rgba(102, 126, 234, 0.2);
+      border-radius: 2px;
+      transition: all 0.1s ease;
+    }
+    
+    .voicecake-wave-bar.voicecake-active {
+      background: #667eea;
+      animation: voicecake-wave-animation 0.6s ease-in-out infinite;
+    }
+    
+    .voicecake-wave-bar.voicecake-active:nth-child(1) { animation-delay: 0s; }
+    .voicecake-wave-bar.voicecake-active:nth-child(2) { animation-delay: 0.1s; }
+    .voicecake-wave-bar.voicecake-active:nth-child(3) { animation-delay: 0.2s; }
+    .voicecake-wave-bar.voicecake-active:nth-child(4) { animation-delay: 0.3s; }
+    .voicecake-wave-bar.voicecake-active:nth-child(5) { animation-delay: 0.4s; }
+    .voicecake-wave-bar.voicecake-active:nth-child(6) { animation-delay: 0.5s; }
+    .voicecake-wave-bar.voicecake-active:nth-child(7) { animation-delay: 0.6s; }
+    .voicecake-wave-bar.voicecake-active:nth-child(8) { animation-delay: 0.7s; }
+    
+    @keyframes voicecake-wave-animation {
+      0%, 100% { height: 4px; }
+      50% { height: 24px; }
+    }
+    
     @media (max-width: 480px) {
       .voicecake-widget-popup {
         width: calc(100vw - 48px);
@@ -1200,18 +1384,39 @@
   window.VoiceCakeWidget = VoiceCakeWidget;
   
   // Auto-initialize if config is provided via data attributes
-  if (document.currentScript && document.currentScript.dataset.agentId) {
-    const config = {
-      agentId: document.currentScript.dataset.agentId,
-      position: document.currentScript.dataset.position || 'bottom-right',
-      theme: document.currentScript.dataset.theme || 'light',
-      size: document.currentScript.dataset.size || 'medium'
-    };
+  function initializeWidget() {
+    // Try to get config from script tag
+    let scriptElement = document.currentScript;
     
-    console.log('VoiceCake Widget: Auto-initializing with config:', config);
-    VoiceCakeWidget.init(config);
+    // Fallback: find the script tag by src
+    if (!scriptElement) {
+      const scripts = document.querySelectorAll('script[src*="voicecake-widget.js"]');
+      if (scripts.length > 0) {
+        scriptElement = scripts[scripts.length - 1];
+      }
+    }
+    
+    if (scriptElement && scriptElement.dataset.agentId) {
+      const config = {
+        agentId: scriptElement.dataset.agentId,
+        position: scriptElement.dataset.position || 'bottom-right',
+        theme: scriptElement.dataset.theme || 'light',
+        size: scriptElement.dataset.size || 'medium'
+      };
+      
+      console.log('VoiceCake Widget: Auto-initializing with config:', config);
+      VoiceCakeWidget.init(config);
+    } else {
+      console.log('VoiceCake Widget: Loaded successfully. Use VoiceCakeWidget.init() to initialize.');
+    }
+  }
+  
+  // Wait for DOM to be ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeWidget);
   } else {
-    console.log('VoiceCake Widget: Loaded successfully. Use VoiceCakeWidget.init() to initialize.');
+    // DOM is already ready
+    initializeWidget();
   }
   
 })();
