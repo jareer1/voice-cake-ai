@@ -127,6 +127,13 @@
       
       console.log('VoiceCake Widget: Creating widget elements...');
       this.createWidget();
+      
+      // Check if widget was created successfully
+      if (!this.elements.container) {
+        console.error('VoiceCake Widget: Failed to create widget elements');
+        return;
+      }
+      
       this.attachEventListeners();
       this.state.isInitialized = true;
       console.log('VoiceCake Widget: Initialization complete');
@@ -134,6 +141,12 @@
     
     createWidget: function() {
       console.log('VoiceCake Widget: Creating widget elements...');
+      
+      // Ensure document.body exists
+      if (!document.body) {
+        console.error('VoiceCake Widget: document.body not available');
+        return;
+      }
       
       const container = document.createElement('div');
       container.id = 'voicecake-widget-container';
@@ -1371,18 +1384,39 @@
   window.VoiceCakeWidget = VoiceCakeWidget;
   
   // Auto-initialize if config is provided via data attributes
-  if (document.currentScript && document.currentScript.dataset.agentId) {
-    const config = {
-      agentId: document.currentScript.dataset.agentId,
-      position: document.currentScript.dataset.position || 'bottom-right',
-      theme: document.currentScript.dataset.theme || 'light',
-      size: document.currentScript.dataset.size || 'medium'
-    };
+  function initializeWidget() {
+    // Try to get config from script tag
+    let scriptElement = document.currentScript;
     
-    console.log('VoiceCake Widget: Auto-initializing with config:', config);
-    VoiceCakeWidget.init(config);
+    // Fallback: find the script tag by src
+    if (!scriptElement) {
+      const scripts = document.querySelectorAll('script[src*="voicecake-widget.js"]');
+      if (scripts.length > 0) {
+        scriptElement = scripts[scripts.length - 1];
+      }
+    }
+    
+    if (scriptElement && scriptElement.dataset.agentId) {
+      const config = {
+        agentId: scriptElement.dataset.agentId,
+        position: scriptElement.dataset.position || 'bottom-right',
+        theme: scriptElement.dataset.theme || 'light',
+        size: scriptElement.dataset.size || 'medium'
+      };
+      
+      console.log('VoiceCake Widget: Auto-initializing with config:', config);
+      VoiceCakeWidget.init(config);
+    } else {
+      console.log('VoiceCake Widget: Loaded successfully. Use VoiceCakeWidget.init() to initialize.');
+    }
+  }
+  
+  // Wait for DOM to be ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeWidget);
   } else {
-    console.log('VoiceCake Widget: Loaded successfully. Use VoiceCakeWidget.init() to initialize.');
+    // DOM is already ready
+    initializeWidget();
   }
   
 })();
