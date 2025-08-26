@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoiceCake Widget - Local Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .test-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        .btn:hover {
+            background: #0056b3;
+        }
+        
+        .console-output {
+            background: #1a1a1a;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎙️ VoiceCake Widget - Local Test</h1>
+        
+        <div class="test-section">
+            <h3>🔧 Test Configuration</h3>
+            <p><strong>Backend URL:</strong> http://127.0.0.1:8000</p>
+            <p><strong>Agent ID:</strong> 49</p>
+            <p><strong>Agent Type:</strong> TEXT</p>
+        </div>
+        
+        <div class="test-section">
+            <h3>🧪 Test Controls</h3>
+            <button class="btn" onclick="testWidget()">Test Widget</button>
+            <button class="btn" onclick="destroyWidget()">Destroy Widget</button>
+            <button class="btn" onclick="checkStatus()">Check Status</button>
+            <button class="btn" onclick="clearConsole()">Clear Console</button>
+            <button class="btn" onclick="testAudioWave()">Test Audio Wave</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>📊 Status</h3>
+            <div id="status-container">
+                <div class="status info">Ready to test</div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>📝 Console Output</h3>
+            <div id="console-output" class="console-output">
+                <div>Console output will appear here...</div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>📋 Instructions</h3>
+            <ol>
+                <li>Make sure your backend is running on <code>http://127.0.0.1:8000</code></li>
+                <li>Click "Test Widget" to initialize the widget</li>
+                <li>Click the widget button in the bottom-right corner</li>
+                <li>Click "Start Voice Chat" to test the connection</li>
+                <li>You should hear the TEXT agent's voice</li>
+                <li>Click "Test Audio Wave" to see the wave animations</li>
+                <li>During calls, the wave animates when anyone is speaking</li>
+            </ol>
+        </div>
+    </div>
+    
+    <!-- Load LiveKit client library -->
+    <script src="https://unpkg.com/livekit-client@2.15.5/dist/livekit-client.umd.js"></script>
+    
+    <!-- Load the widget script -->
+    <script src="voicecake-widget.js" 
+            data-agent-id="49" 
+            data-position="bottom-right" 
+            data-theme="light">
+    </script>
+    
+    <script>
+        // Capture console output
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        const consoleOutput = document.getElementById('console-output');
+        
+        function addToConsole(message, type = 'log') {
+            const div = document.createElement('div');
+            div.style.color = type === 'error' ? '#ff6b6b' : type === 'warn' ? '#feca57' : '#48dbfb';
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            consoleOutput.appendChild(div);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addToConsole(args.join(' '));
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addToConsole(args.join(' '), 'error');
+        };
+        
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            addToConsole(args.join(' '), 'warn');
+        };
+        
+        function updateStatus(message, type = 'info') {
+            const statusContainer = document.getElementById('status-container');
+            statusContainer.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+        
+        function testWidget() {
+            if (window.VoiceCakeWidget) {
+                updateStatus('✅ Widget loaded successfully!', 'success');
+                console.log('Widget object found:', window.VoiceCakeWidget);
+                
+                try {
+                    window.VoiceCakeWidget.init({
+                        agentId: '49',
+                        position: 'bottom-right',
+                        theme: 'light'
+                    });
+                    updateStatus('✅ Widget initialized successfully!', 'success');
+                } catch (error) {
+                    updateStatus('❌ Failed to initialize widget: ' + error.message, 'error');
+                    console.error('Initialization error:', error);
+                }
+            } else {
+                updateStatus('❌ Widget not loaded', 'error');
+                console.error('Widget object not found');
+            }
+        }
+        
+        function destroyWidget() {
+            if (window.VoiceCakeWidget) {
+                try {
+                    window.VoiceCakeWidget.destroy();
+                    updateStatus('✅ Widget destroyed successfully!', 'success');
+                } catch (error) {
+                    updateStatus('❌ Failed to destroy widget: ' + error.message, 'error');
+                    console.error('Destruction error:', error);
+                }
+            } else {
+                updateStatus('❌ Widget not loaded', 'error');
+            }
+        }
+        
+        function checkStatus() {
+            if (window.VoiceCakeWidget) {
+                const state = window.VoiceCakeWidget.state;
+                const status = `
+                    Initialized: ${state.isInitialized}<br>
+                    Connected: ${state.isConnected}<br>
+                    Active: ${state.isActive}<br>
+                    Mic On: ${state.isMicOn}<br>
+                    Has Permissions: ${state.hasPermissions}
+                `;
+                updateStatus('📊 Widget Status:<br>' + status, 'info');
+            } else {
+                updateStatus('❌ Widget not loaded', 'error');
+            }
+        }
+        
+        function clearConsole() {
+            consoleOutput.innerHTML = '<div>Console cleared...</div>';
+        }
+        
+        function testAudioWave() {
+            if (window.VoiceCakeWidget) {
+                // Show audio wave
+                window.VoiceCakeWidget.showAudioWave();
+                
+                // Test voice activity
+                window.VoiceCakeWidget.startAudioWave();
+                setTimeout(() => {
+                    window.VoiceCakeWidget.stopAudioWave();
+                }, 3000);
+                
+                // Test again after a pause
+                setTimeout(() => {
+                    window.VoiceCakeWidget.startAudioWave();
+                    setTimeout(() => {
+                        window.VoiceCakeWidget.stopAudioWave();
+                    }, 2000);
+                }, 4000);
+                
+                updateStatus('🎵 Testing audio wave animations...', 'info');
+            } else {
+                updateStatus('❌ Widget not loaded', 'error');
+            }
+        }
+        
+        // Auto-test on page load
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                if (window.VoiceCakeWidget) {
+                    console.log('VoiceCake Widget loaded successfully!');
+                    updateStatus('✅ Widget loaded and ready for testing', 'success');
+                } else {
+                    console.error('VoiceCake Widget failed to load');
+                    updateStatus('❌ Widget failed to load', 'error');
+                }
+            }, 2000);
+        });
+    </script>
+</body>
+</html>
