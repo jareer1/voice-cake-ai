@@ -83,8 +83,8 @@
       size: 'medium',
       autoStart: false,
       showTranscription: true,
-      apiBaseUrl: 'http://127.0.0.1:8000/api/v1',
-      wsBaseUrl: 'ws://127.0.0.1:8000',
+      apiBaseUrl: 'https://voicecakedevelop-hrfygverfwe8g4bj.canadacentral-01.azurewebsites.net/api/v1',
+      wsBaseUrl: 'ws://voicecakedevelop-hrfygverfwe8g4bj.canadacentral-01.azurewebsites.net',
       humeEndpoint: '/api/v1/hume/ws/inference'
     },
     
