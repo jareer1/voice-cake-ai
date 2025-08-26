@@ -2,6 +2,19 @@ import axios from "axios";
 import config from "@/lib/config";
 import { toast } from "sonner";
 
+// Utility function to handle standardized backend responses
+const handleApiResponse = (response: any, fallback?: any) => {
+  if (response.data && typeof response.data === 'object') {
+    if (response.data.success === true && response.data.data !== undefined) {
+      return response.data.data;
+    }
+    if (!response.data.success && response.data.message) {
+      throw new Error(response.data.message);
+    }
+  }
+  return fallback !== undefined ? fallback : response.data;
+};
+
 const publicApi = axios.create({
   baseURL: config.api.baseURL,
 });
@@ -55,13 +68,13 @@ export const publicAgentAPI = {
     try {
       // First try the public endpoint
       const response = await publicApi.get(`/agents/${id}/public`);
-      return response.data;
+      return handleApiResponse(response);
     } catch (error: any) {
       console.log("Public endpoint failed, trying regular endpoint:", error.response?.status);
       // If public endpoint doesn't exist (404), try the regular endpoint
       if (error.response?.status === 404) {
         const response = await publicApi.get(`/agents/${id}`);
-        return response.data;
+        return handleApiResponse(response);
       }
       throw error;
     }
@@ -75,7 +88,7 @@ export const publicAgentAPI = {
         agent_id: agentId,
         participant_name: `PublicUser_${Date.now()}` // Auto-generated participant name for public users
       });
-      return response.data;
+      return handleApiResponse(response);
     } catch (error: any) {
       console.log("Public LiveKit endpoint failed, trying regular endpoint:", error.response?.status);
       // If public endpoint doesn't exist (404), try the regular endpoint without auth
@@ -84,7 +97,7 @@ export const publicAgentAPI = {
           agent_id: agentId,
           participant_name: `PublicUser_${Date.now()}`
         });
-        return response.data;
+        return handleApiResponse(response);
       }
       throw error;
     }

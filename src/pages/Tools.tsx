@@ -101,21 +101,23 @@ export default function Tools() {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-
-      
-      // Handle different response formats
+      // Handle standardized backend response format
       let toolsData = [];
-      if (Array.isArray(response.data)) {
-        // API returns tools directly as array
-        toolsData = response.data;
-      } else if (response.data.tools && Array.isArray(response.data.tools)) {
-        // API returns nested structure
-        toolsData = response.data.tools;
-      } else {
-        console.warn('Unexpected tools API response format:', response.data);
-        toolsData = [];
+      if (response.data && typeof response.data === 'object') {
+        if (response.data.success === true && Array.isArray(response.data.data)) {
+          // Standardized response format
+          toolsData = response.data.data;
+        } else if (Array.isArray(response.data)) {
+          // Legacy format - direct array
+          toolsData = response.data;
+        } else if (response.data.tools && Array.isArray(response.data.tools)) {
+          // Legacy nested structure
+          toolsData = response.data.tools;
+        } else {
+          console.warn('Unexpected tools API response format:', response.data);
+          toolsData = [];
+        }
       }
-      
 
       setTools(toolsData);
     } catch (error) {
@@ -268,15 +270,35 @@ export default function Tools() {
       };
 
       if (editingTool) {
-        await api.put(`/tools/${editingTool.id}/`, toolData, {
+        const response = await api.put(`/tools/${editingTool.id}/`, toolData, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setSuccess('Tool updated successfully');
+        
+        // Handle standardized response format
+        if (response.data && typeof response.data === 'object') {
+          if (response.data.success === true) {
+            setSuccess(response.data.message || 'Tool updated successfully');
+          } else {
+            throw new Error(response.data.message || 'Failed to update tool');
+          }
+        } else {
+          setSuccess('Tool updated successfully');
+        }
       } else {
-        await api.post('/tools/', toolData, {
+        const response = await api.post('/tools/', toolData, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setSuccess('Tool created successfully');
+        
+        // Handle standardized response format
+        if (response.data && typeof response.data === 'object') {
+          if (response.data.success === true) {
+            setSuccess(response.data.message || 'Tool created successfully');
+          } else {
+            throw new Error(response.data.message || 'Failed to create tool');
+          }
+        } else {
+          setSuccess('Tool created successfully');
+        }
       }
 
       await loadTools();
@@ -322,10 +344,21 @@ export default function Tools() {
     if (!confirm('Are you sure you want to delete this tool?')) return;
 
     try {
-              await api.delete(`/tools/${toolId}/`, {
+      const response = await api.delete(`/tools/${toolId}/`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setSuccess('Tool deleted successfully');
+      
+      // Handle standardized response format
+      if (response.data && typeof response.data === 'object') {
+        if (response.data.success === true) {
+          setSuccess(response.data.message || 'Tool deleted successfully');
+        } else {
+          throw new Error(response.data.message || 'Failed to delete tool');
+        }
+      } else {
+        setSuccess('Tool deleted successfully');
+      }
+      
       await loadTools();
     } catch (error) {
       setError('Failed to delete tool');

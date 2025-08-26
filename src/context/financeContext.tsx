@@ -104,12 +104,22 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [activeSubscriptions]);
 
   const listPlans = useCallback(async (botType: BotType): Promise<SubscriptionPlan[]> => {
-    const { data } = await api.get(`/finance/plans/${botType}`);
-    return data as SubscriptionPlan[];
+    try {
+      const { data } = await api.get(`/finance/plans/${botType}`);
+      // Ensure we return an array, even if the API returns unexpected data
+      if (Array.isArray(data)) {
+        return data as SubscriptionPlan[];
+      } else if (data && Array.isArray(data.data)) {
+        return data.data as SubscriptionPlan[];
+      } else {
+        return [];
+      }
+    } catch (error) {
+      return [];
+    }
   }, []);
 
   const refreshSubscriptions = useCallback(async () => {
-    console.log("FinanceContext: Starting refreshSubscriptions...");
     try {
       // Check both subscription types using existing endpoints
       const [conversaRes, empathRes] = await Promise.allSettled([
@@ -120,43 +130,46 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const next: Partial<Record<BotType, UserSubscription>> = {};
       
       // Handle Conversa subscription (single object response)
-      if (conversaRes.status === "fulfilled" && conversaRes.value.data) {
-        const conversaSub = conversaRes.value.data;
-        console.log("FinanceContext: Conversa response:", conversaSub);
-        if (conversaSub.is_active && conversaSub.minutes_left > 0) {
-          next.conversa = conversaSub as UserSubscription;
-          console.log("FinanceContext: Set active Conversa subscription");
+      if (conversaRes.status === "fulfilled") {
+        const conversaData = conversaRes.value.data;
+        
+        // Check if the response indicates success and has valid subscription data
+        if (conversaData && conversaData.success !== false) {
+          // The actual subscription data might be nested in a 'data' property
+          const subscriptionData = conversaData.data || conversaData;
+          
+          if (subscriptionData && subscriptionData.is_active && subscriptionData.minutes_left > 0) {
+            next.conversa = subscriptionData as UserSubscription;
+          }
         }
-      } else {
-        console.log("FinanceContext: Conversa response failed or no data:", conversaRes);
       }
       
       // Handle Empath subscription (single object response)
-      if (empathRes.status === "fulfilled" && empathRes.value.data) {
-        const empathSub = empathRes.value.data;
-        console.log("FinanceContext: Empath response:", empathSub);
-        if (empathSub.is_active && empathSub.minutes_left > 0) {
-          next.empath = empathSub as UserSubscription;
-          console.log("FinanceContext: Set active Empath subscription");
+      if (empathRes.status === "fulfilled") {
+        const empathData = empathRes.value.data;
+        
+        // Check if the response indicates success and has valid subscription data
+        if (empathData && empathData.success !== false) {
+          // The actual subscription data might be nested in a 'data' property
+          const subscriptionData = empathData.data || empathData;
+          
+          if (subscriptionData && subscriptionData.is_active && subscriptionData.minutes_left > 0) {
+            next.empath = subscriptionData as UserSubscription;
+          }
         }
-      } else {
-        console.log("FinanceContext: Empath response failed or no data:", empathRes);
       }
 
-      console.log("FinanceContext: Final subscriptions state:", next);
       setActiveSubscriptions(next);
     } catch (e) {
-      console.error("FinanceContext: Error in refreshSubscriptions:", e);
+      // Silent error handling for production
     }
     finally {
-      console.log("FinanceContext: Setting subscriptionsLoaded to true");
       setSubscriptionsLoaded(true);
     }
   }, []);
 
   // Manual refresh function for immediate use after login
   const refreshSubscriptionsImmediate = useCallback(async () => {
-    console.log("FinanceContext: Manual refresh requested...");
     setSubscriptionsLoaded(false);
     await refreshSubscriptions();
   }, [refreshSubscriptions]);
@@ -265,12 +278,10 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   useEffect(() => {
     // Refresh when auth token becomes available; if not, mark loaded (public pages)
     if (token && !hasInitialized.current) {
-      console.log("FinanceContext: Token available, initializing subscriptions...");
       hasInitialized.current = true;
       setSubscriptionsLoaded(false);
       refreshSubscriptions();
     } else if (!token) {
-      console.log("FinanceContext: No token, clearing subscriptions...");
       hasInitialized.current = false;
       setActiveSubscriptions({});
       setSubscriptionsLoaded(true);

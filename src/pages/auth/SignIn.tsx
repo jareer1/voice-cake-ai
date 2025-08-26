@@ -64,7 +64,6 @@ export default function SignIn() {
             // Check Conversa subscription (single object response)
             if (conversaRes.status === "fulfilled" && conversaRes.value.data) {
               const conversaSub = conversaRes.value.data;
-              console.log("Post-login Conversa subscription:", conversaSub);
               if (conversaSub.is_active && conversaSub.minutes_left > 0) {
                 hasActive = true;
               }
@@ -73,13 +72,10 @@ export default function SignIn() {
             // Check Empath subscription (single object response)
             if (!hasActive && empathRes.status === "fulfilled" && empathRes.value.data) {
               const empathSub = empathRes.value.data;
-              console.log("Post-login Empath subscription:", empathSub);
               if (empathSub.is_active && empathSub.minutes_left > 0) {
                 hasActive = true;
               }
             }
-            
-            console.log("Post-login has active subscription:", hasActive);
             
             if (hasActive) {
               navigate("/dashboard");

@@ -21,11 +21,19 @@ export default function PlanSelection() {
     const fetchPlans = async () => {
       setLoading(true);
       try {
-        const [conversa, empath] = await Promise.all([
+        const [conversa, empath] = await Promise.allSettled([
           listPlans("conversa"),
           listPlans("empath"),
         ]);
-        setPlans({ conversa, empath });
+        
+        // Handle the results, ensuring we always have arrays
+        const conversaPlans = conversa.status === "fulfilled" ? conversa.value : [];
+        const empathPlans = empath.status === "fulfilled" ? empath.value : [];
+        
+        setPlans({ conversa: conversaPlans, empath: empathPlans });
+      } catch (error) {
+        // Set empty arrays as fallback
+        setPlans({ conversa: [], empath: [] });
       } finally {
         setLoading(false);
       }
@@ -39,18 +47,11 @@ export default function PlanSelection() {
     
     // Only refresh if subscriptions are loaded, not loading plans, and we haven't already refreshed
     if (subscriptionsLoaded && !loading && !hasRefreshedRef.current) {
-      console.log("PlanSelection: Refreshing subscriptions...");
       hasRefreshedRef.current = true;
       
       // Add a small delay to prevent rapid successive calls
       timeoutId = setTimeout(() => {
-        refreshSubscriptions()
-          .then(() => {
-            console.log("PlanSelection: Subscriptions refreshed successfully");
-          })
-          .catch((error) => {
-            console.error("PlanSelection: Error refreshing subscriptions:", error);
-          });
+        refreshSubscriptions();
       }, 100);
     }
     
@@ -65,13 +66,15 @@ export default function PlanSelection() {
   // Handle redirect when subscription status changes (only once)
   useEffect(() => {
     if (hasActiveSubscription && !hasRedirected) {
-      console.log("PlanSelection: User has active subscription, redirecting to dashboard");
       setHasRedirected(true);
       navigate("/dashboard", { replace: true });
     }
   }, [hasActiveSubscription, hasRedirected, navigate]);
 
-  const currentPlans = useMemo(() => plans[selectedBotType] || [], [plans, selectedBotType]);
+  const currentPlans = useMemo(() => {
+    const plansForBot = plans[selectedBotType];
+    return Array.isArray(plansForBot) ? plansForBot : [];
+  }, [plans, selectedBotType]);
 
   const handleSelect = (plan: SubscriptionPlan) => {
     navigate(`/plan-purchase?planId=${plan.id}&bot=${plan.bot_type}`);

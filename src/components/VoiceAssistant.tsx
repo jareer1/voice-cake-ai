@@ -11,7 +11,11 @@ import { Mic, MicOff, Phone, PhoneOff, Volume2, VolumeX } from "lucide-react";
 import config from "@/lib/config";
 import { liveKitAPI } from "@/pages/services/api";
 import { useAuth } from "@/context/authContext";
-import { isAuthenticationError } from "@/utils/authUtils";
+import { 
+  isAuthenticationError, 
+  getErrorMessage, 
+  safeLogError 
+} from "@/utils/authUtils";
 
 interface VoiceAssistantProps {
   apiUrl?: string;
@@ -243,7 +247,8 @@ export default function VoiceAssistant({ apiUrl }: VoiceAssistantProps) {
           const response = await liveKitAPI.createSession('', participantName);
           sessionData = response as SessionData;
         } catch (error: any) {
-          console.error('Failed to start authenticated session:', error);
+          // Safe logging without exposing sensitive data
+          safeLogError(error, 'Failed to Start Authenticated Session');
           
           // Check if it's an authentication error
           const authError = isAuthenticationError(error);
@@ -254,7 +259,9 @@ export default function VoiceAssistant({ apiUrl }: VoiceAssistantProps) {
             throw new Error('Your session has expired. Please log in again.');
           }
           
-          throw new Error(error.response?.data?.detail || error.message || 'Failed to start session');
+          // Use safe error message
+          const errorMessage = getErrorMessage(error);
+          throw new Error(errorMessage);
         }
       } else {
         // Use direct fetch for public sessions
@@ -271,7 +278,9 @@ export default function VoiceAssistant({ apiUrl }: VoiceAssistantProps) {
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.detail || 'Failed to start session');
+          // Use safe error message
+          const errorMessage = errorData.message || errorData.detail || 'Failed to start session';
+          throw new Error(errorMessage);
         }
 
         sessionData = await response.json();
@@ -290,7 +299,8 @@ export default function VoiceAssistant({ apiUrl }: VoiceAssistantProps) {
       startStatusChecking(sessionData.session_id);
 
     } catch (error) {
-      console.error('❌ Error starting session:', error);
+      // Safe logging without exposing sensitive data
+      safeLogError(error, 'Error Starting Session');
       setError(error instanceof Error ? error.message : 'Failed to start session');
     } finally {
       setIsLoading(false);
@@ -518,7 +528,8 @@ export default function VoiceAssistant({ apiUrl }: VoiceAssistantProps) {
       await room.connect(sessionData.url, sessionData.token);
 
     } catch (error) {
-      console.error('❌ Error connecting to room:', error);
+      // Safe logging without exposing sensitive data
+      safeLogError(error, 'Error Connecting to Room');
       setError('Failed to connect to voice chat');
     }
   };
@@ -532,7 +543,8 @@ export default function VoiceAssistant({ apiUrl }: VoiceAssistantProps) {
           setAgentStatus(status.status);
         }
       } catch (error) {
-        console.error('❌ Error checking session status:', error);
+        // Safe logging without exposing sensitive data
+        safeLogError(error, 'Error Checking Session Status');
       }
     }, 3000); // Check every 3 seconds
   };
@@ -578,7 +590,8 @@ export default function VoiceAssistant({ apiUrl }: VoiceAssistantProps) {
       }, 100);
 
     } catch (error) {
-      console.error('❌ Error toggling microphone:', error);
+      // Safe logging without exposing sensitive data
+      safeLogError(error, 'Error Toggling Microphone');
       setError('Failed to toggle microphone');
     }
   };
@@ -592,7 +605,8 @@ export default function VoiceAssistant({ apiUrl }: VoiceAssistantProps) {
       setIsMuted(false);
       console.log('🎤 Microphone enabled');
     } catch (error) {
-      console.error('❌ Error starting recording:', error);
+      // Safe logging without exposing sensitive data
+      safeLogError(error, 'Error Starting Recording');
       setError('Failed to access microphone');
     }
   };
@@ -606,7 +620,8 @@ export default function VoiceAssistant({ apiUrl }: VoiceAssistantProps) {
       setIsMuted(true);
       console.log('🔇 Microphone disabled');
     } catch (error) {
-      console.error('❌ Error stopping recording:', error);
+      // Safe logging without exposing sensitive data
+      safeLogError(error, 'Error Stopping Recording');
     }
   };
 
@@ -665,7 +680,8 @@ export default function VoiceAssistant({ apiUrl }: VoiceAssistantProps) {
         });
         console.log('✅ Session ended successfully on server');
       } catch (error) {
-        console.error('❌ Error stopping session on server:', error);
+        // Safe logging without exposing sensitive data
+        safeLogError(error, 'Error Stopping Session on Server');
       }
     }
 
