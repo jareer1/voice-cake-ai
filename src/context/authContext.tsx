@@ -11,7 +11,7 @@ interface AuthContextType {
   token: string | null;
   refreshToken: string | null;
   login: (username: string, password: string) => Promise<any>;
-  signup: (email: string, username: string, password: string) => Promise<any>;
+  signup: (email: string, username: string, password: string, full_name?: string) => Promise<any>;
   logout: () => Promise<void>;
   refreshAccessToken: () => Promise<boolean>;
   requestPasswordReset: (email: string) => Promise<any>;
@@ -65,12 +65,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signup = async (email: string, username: string, password: string) => {
+  const signup = async (email: string, username: string, password: string, full_name?: string) => {
     try {
-      const res = await api.post("/auth/register", { email, username, password });
-      setToken(res.data.access_token);
-      setUser(res.data.user);
-      return res.data;
+      const res = await authAPI.signup(email, username, password, full_name);
+      
+      // Handle new response format with success wrapper
+      const responseData = res.success ? res.data : res;
+      
+      const { access_token, refresh_token, user: userData } = responseData;
+      
+      // Store tokens and user data
+      setToken(access_token);
+      setRefreshToken(refresh_token);
+      setUser(userData);
+      
+      // Store in localStorage
+      localStorage.setItem("authToken", access_token);
+      localStorage.setItem("refreshToken", refresh_token);
+      localStorage.setItem("user", JSON.stringify(userData));
+      
+      return res;
     } catch (err: any) {
       const errorMessage = getErrorMessage(err);
       throw new Error(errorMessage);

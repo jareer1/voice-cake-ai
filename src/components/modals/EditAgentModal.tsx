@@ -285,7 +285,7 @@ export function EditAgentModal({ isOpen, onClose, onSubmit, agent }: EditAgentMo
                     <SelectTrigger>
                       <SelectValue placeholder="Select a TTS provider" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent side="bottom" align="start" sideOffset={4}>
                       <SelectItem value="voicecake">
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 rounded-full bg-blue-500" />
@@ -330,7 +330,7 @@ export function EditAgentModal({ isOpen, onClose, onSubmit, agent }: EditAgentMo
                     <SelectTrigger>
                       <SelectValue placeholder="Select an AI model" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent side="bottom" align="start" sideOffset={4}>
                       {Object.entries(groupedModels).map(([provider, models]) => (
                         <SelectGroup key={provider}>
                           <SelectLabel>{provider.replace('_', ' ')}</SelectLabel>
@@ -356,7 +356,7 @@ export function EditAgentModal({ isOpen, onClose, onSubmit, agent }: EditAgentMo
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="instructions">
-                    {selectedAgentType === 'SPEECH' ? 'Custom Instructions' : 'Instructions'}
+                    {selectedAgentType === 'SPEECH' ? 'Custom Instructions' : 'Agent Instructions'}
                   </Label>
                   <span className="text-xs text-muted-foreground">
                     {formData.instructions.length}/2000 characters

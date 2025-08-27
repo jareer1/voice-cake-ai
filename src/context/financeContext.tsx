@@ -183,11 +183,32 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     ): Promise<{ subscription: UserSubscription; apiKeyRaw?: string | null; client_secret?: string; payment_intent_id?: string }> => {
       // Create payment intent first
       const intentRes = await api.post(`/finance/purchase/${planId}/create-intent`);
-      if (!intentRes.data?.success) {
-        throw new Error("Failed to create payment intent");
+      
+      // Check if the response has the expected structure
+      if (!intentRes.data) {
+        throw new Error("Failed to create payment intent - no response data");
       }
       
-      const { client_secret, payment_intent_id } = intentRes.data.data;
+      // Handle both direct response and wrapped response formats
+      const responseData = intentRes.data;
+      let client_secret: string | undefined;
+      let payment_intent_id: string | undefined;
+      
+      if (responseData.success === true && responseData.data) {
+        // Standardized response format
+        client_secret = responseData.data.client_secret;
+        payment_intent_id = responseData.data.payment_intent_id;
+      } else if (responseData.client_secret) {
+        // Direct response format
+        client_secret = responseData.client_secret;
+        payment_intent_id = responseData.payment_intent_id;
+      } else {
+        throw new Error("Failed to create payment intent - invalid response format");
+      }
+      
+      if (!client_secret) {
+        throw new Error("Failed to create payment intent - missing client secret");
+      }
       
       // Return the client secret for frontend Stripe confirmation
       // The actual subscription creation happens after Stripe confirms payment
@@ -203,21 +224,39 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const confirmStripePayment = useCallback(
     async (planId: number, paymentIntentId: string): Promise<{ subscription: UserSubscription; apiKeyRaw?: string | null }> => {
-      const { data } = await api.post(`/finance/purchase/${planId}/confirm`, null, {
+      const response = await api.post(`/finance/purchase/${planId}/confirm`, null, {
         params: { payment_intent_id: paymentIntentId }
       });
       
-      if (!data?.success) {
-        throw new Error(data?.message || "Payment confirmation failed");
+      // Check if the response has the expected structure
+      if (!response.data) {
+        throw new Error("Payment confirmation failed - no response data");
       }
       
-      const sub = data.data?.subscription as UserSubscription;
-      const rawKey = data.data?.api_key as string | undefined;
+      const responseData = response.data;
+      let subscription: UserSubscription | undefined;
+      let apiKey: string | undefined;
+      
+      if (responseData.success === true && responseData.data) {
+        // Standardized response format
+        subscription = responseData.data.subscription as UserSubscription;
+        apiKey = responseData.data.api_key as string | undefined;
+      } else if (responseData.subscription) {
+        // Direct response format
+        subscription = responseData.subscription as UserSubscription;
+        apiKey = responseData.api_key as string | undefined;
+      } else {
+        throw new Error(responseData.message || "Payment confirmation failed - invalid response format");
+      }
+      
+      if (!subscription) {
+        throw new Error("Payment confirmation failed - no subscription data");
+      }
       
       // Refresh subscriptions after successful purchase
       await refreshSubscriptions();
       
-      return { subscription: sub, apiKeyRaw: rawKey ?? null };
+      return { subscription, apiKeyRaw: apiKey ?? null };
     },
     [refreshSubscriptions]
   );
