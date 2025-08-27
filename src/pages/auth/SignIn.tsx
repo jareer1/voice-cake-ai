@@ -158,10 +158,11 @@ export default function SignIn() {
               {/* Login Form */}
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <Label htmlFor="username" className="text-gray-700">Username</Label>
+                  <Label htmlFor="username" className="text-gray-700">Email or Username</Label>
                   <Input
                     id="username"
                     type="text"
+                    placeholder="Enter your email or username"
                     value={formData.username}
                     onChange={(e) => handleInputChange("username", e.target.value)}
                     className="mt-1"
