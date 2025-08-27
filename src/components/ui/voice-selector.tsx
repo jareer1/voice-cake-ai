@@ -178,7 +178,7 @@ export function VoiceSelector({
             )}
           </SelectValue>
         </SelectTrigger>
-        <SelectContent className="max-h-96" side="bottom" align="start" sideOffset={4}>
+        <SelectContent side="bottom" align="start" sideOffset={8} className="max-h-96 z-[9999]" style={{ position: 'fixed' }}>
           {Object.keys(groupedVoices).length === 0 ? (
             <div className="p-4 text-center text-muted-foreground">
               No voices found matching your criteria
