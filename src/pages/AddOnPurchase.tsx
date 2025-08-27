@@ -3,9 +3,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useFinance } from "@/context/financeContext";
+import { useNavigate } from "react-router-dom";
 
 export default function AddOnPurchase() {
-  const { purchaseVoiceClone, purchasePremiumVoice, getWallet, topupWallet, setPremiumSurcharge } = useFinance();
+  const { purchaseVoiceClone, purchasePremiumVoice, voiceClonePurchased, getWallet, topupWallet, setPremiumSurcharge } = useFinance();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState<"vc" | "pv" | null>(null);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [topupAmount, setTopupAmount] = useState<number>(500); // cents
@@ -24,6 +26,12 @@ export default function AddOnPurchase() {
   useState(() => { refreshWallet(); });
 
   const handleVoiceClone = async () => {
+    if (voiceClonePurchased) {
+      // If already purchased, redirect to voice clone page
+      navigate("/voice-clone");
+      return;
+    }
+
     setLoading("vc");
     try {
       await purchaseVoiceClone();
@@ -76,7 +84,7 @@ export default function AddOnPurchase() {
             <p className="text-muted-foreground text-sm">Clone a new voice for $5 one-time</p>
           </div>
           <Button className="btn-theme-gradient" onClick={handleVoiceClone} disabled={loading === "vc"}>
-            {loading === "vc" ? "Processing..." : "Purchase ($5)"}
+            {loading === "vc" ? "Processing..." : voiceClonePurchased ? "Clone Your Voice" : "Purchase ($5)"}
           </Button>
         </CardContent>
       </Card>

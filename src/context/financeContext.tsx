@@ -84,6 +84,7 @@ type FinanceContextType = {
   // add-ons
   purchaseVoiceClone: () => Promise<void>;
   purchasePremiumVoice: () => Promise<void>;
+  voiceClonePurchased: boolean;
 
   // wallet
   getWallet: () => Promise<WalletInfo>;
@@ -96,6 +97,7 @@ const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
 export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeSubscriptions, setActiveSubscriptions] = useState<Partial<Record<BotType, UserSubscription>>>({});
   const [subscriptionsLoaded, setSubscriptionsLoaded] = useState<boolean>(false);
+  const [voiceClonePurchased, setVoiceClonePurchased] = useState<boolean>(false);
   const { token } = useAuth();
   const hasInitialized = useRef(false);
 
@@ -185,7 +187,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         throw new Error("Failed to create payment intent");
       }
       
-      const { client_secret, payment_intent_id } = intentRes.data;
+      const { client_secret, payment_intent_id } = intentRes.data.data;
       
       // Return the client secret for frontend Stripe confirmation
       // The actual subscription creation happens after Stripe confirms payment
@@ -254,6 +256,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const purchaseVoiceClone = useCallback(async (): Promise<void> => {
     await api.post(`/finance/voice-clone`);
+    setVoiceClonePurchased(true);
   }, []);
 
   const purchasePremiumVoice = useCallback(async (): Promise<void> => {
@@ -306,6 +309,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       revokeApiKey,
       purchaseVoiceClone,
       purchasePremiumVoice,
+      voiceClonePurchased,
       getWallet,
       topupWallet,
       setPremiumSurcharge,
@@ -327,6 +331,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       revokeApiKey,
       purchaseVoiceClone,
       purchasePremiumVoice,
+      voiceClonePurchased,
       getWallet,
       topupWallet,
       setPremiumSurcharge,
