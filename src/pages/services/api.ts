@@ -160,15 +160,15 @@ api.interceptors.response.use(
           });
           
           // Clear tokens and redirect
-          localStorage.removeItem("authToken");
-          localStorage.removeItem("refreshToken");
-          localStorage.removeItem("user");
-          localStorage.removeItem("userId");
-          localStorage.removeItem("username");
-          localStorage.removeItem("email");
-          
+        localStorage.removeItem("authToken");
+        localStorage.removeItem("refreshToken");
+        localStorage.removeItem("user");
+        localStorage.removeItem("userId");
+        localStorage.removeItem("username");
+        localStorage.removeItem("email");
+        
           setTimeout(() => {
-            window.location.href = "/auth/signin";
+        window.location.href = "/auth/signin";
           }, 1000);
         }
         
@@ -242,12 +242,12 @@ export const toolsAPI = {
 export const authAPI = {
   login: async (username: string, password: string) => {
     const response = await api.post('/auth/login', { username, password });
-    return handleApiResponse(response);
+    return response.data; // Return full response for auth endpoints to access success/message
   },
   
-  signup: async (email: string, username: string, password: string) => {
-    const response = await api.post('/auth/register', { email, username, password });
-    return handleApiResponse(response);
+  signup: async (email: string, username: string, password: string, full_name?: string) => {
+    const response = await api.post('/auth/register', { email, username, password, full_name });
+    return response.data; // Return full response for auth endpoints to access success/message
   },
   
   refreshToken: async (refreshToken: string) => {
@@ -308,6 +308,24 @@ export const voiceCloneAPI = {
     
     const response = await api.post('/voice-clones/', formData);
     return handleApiResponse(response) as VoiceCloneResponse;
+  }
+};
+
+// User API functions
+export const userAPI = {
+  getCurrentUser: async () => {
+    const response = await api.get('/users/me');
+    return response.data; // Return the full response to access data.data
+  },
+  
+  updateUser: async (userData: {
+    full_name?: string;
+    phone?: string;
+    company?: string;
+    avatar_url?: string;
+  }) => {
+    const response = await api.put('/users/me', userData);
+    return response.data; // Return the full response to access data.data
   }
 };
 

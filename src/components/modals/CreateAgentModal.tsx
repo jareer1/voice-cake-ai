@@ -316,7 +316,7 @@ export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModal
                       <SelectTrigger>
                         <SelectValue placeholder="Select a TTS provider" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent side="bottom" align="start" sideOffset={4}>
                         <SelectItem value="voicecake">
                           <div className="flex items-center gap-2">
                             <div className="w-2 h-2 rounded-full bg-blue-500" />
@@ -361,7 +361,7 @@ export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModal
                       <SelectTrigger>
                         <SelectValue placeholder="Select an AI model" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent side="bottom" align="start" sideOffset={4}>
                         {Object.entries(groupedModels).map(([provider, models]) => (
                           <SelectGroup key={provider}>
                             <SelectLabel>{provider.replace('_', ' ')}</SelectLabel>
@@ -388,7 +388,7 @@ export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModal
                 <h3 className="font-semibold text-lg">Instructions</h3>
                 <div className="space-y-2">
                   <Label htmlFor="instructions">
-                    {selectedAgentType === 'SPEECH' ? 'Custom Instructions' : 'Instructions'}
+                    {selectedAgentType === 'SPEECH' ? 'Custom Instructions' : 'Agent Instructions'}
                   </Label>
                   <Textarea
                     id="instructions"

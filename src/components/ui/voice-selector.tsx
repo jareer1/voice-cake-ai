@@ -149,7 +149,7 @@ export function VoiceSelector({
             <SelectTrigger className="w-full">
               <SelectValue placeholder="All Categories" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent side="bottom" align="start" sideOffset={4}>
               <SelectItem value="all">All Categories</SelectItem>
               {categories.map(category => (
                 <SelectItem key={category} value={category}>
@@ -178,7 +178,7 @@ export function VoiceSelector({
             )}
           </SelectValue>
         </SelectTrigger>
-        <SelectContent className="max-h-96">
+        <SelectContent className="max-h-96" side="bottom" align="start" sideOffset={4}>
           {Object.keys(groupedVoices).length === 0 ? (
             <div className="p-4 text-center text-muted-foreground">
               No voices found matching your criteria

@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { CreateAgentModal } from "@/components/modals/CreateAgentModal";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useAuth } from "@/context/authContext";
 
 export function TopNav() {
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { toggleSidebar } = useSidebar();
   const { logout } = useAuth();
@@ -79,15 +77,6 @@ export function TopNav() {
           </div>
         )}
       </div>
-
-      <CreateAgentModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSubmit={(data) => {
-          console.log('Creating agent:', data);
-          // Handle agent creation
-        }}
-      />
     </header>
   );
 }
