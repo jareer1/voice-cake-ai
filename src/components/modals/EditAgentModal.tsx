@@ -77,7 +77,8 @@ export function EditAgentModal({ isOpen, onClose, onSubmit, agent }: EditAgentMo
     model_provider: "",
     model_resource: "",
     instructions: "",
-    tool_ids: [] as string[]
+    tool_ids: [] as string[],
+    inbound_phone_number: ""
   });
   const [isLoading, setIsLoading] = useState(false);
   const [selectedAgentType, setSelectedAgentType] = useState<'SPEECH' | 'TEXT' | null>(null);
@@ -118,7 +119,8 @@ export function EditAgentModal({ isOpen, onClose, onSubmit, agent }: EditAgentMo
         model_provider: agent.model_provider || "",
         model_resource: (agent as Agent & { model_resource?: string }).model_resource || "",
         instructions: agent.custom_instructions || "",
-        tool_ids: agent.tool_ids || []
+        tool_ids: agent.tool_ids || [],
+        inbound_phone_number: (agent as Agent & { inbound_phone_number?: string }).inbound_phone_number || ""
       };
       
       setFormData(newFormData);
@@ -132,7 +134,8 @@ export function EditAgentModal({ isOpen, onClose, onSubmit, agent }: EditAgentMo
         model_provider: "",
         model_resource: "",
         instructions: "",
-        tool_ids: []
+        tool_ids: [],
+        inbound_phone_number: ""
       });
       setSelectedAgentType(null);
     }
@@ -149,6 +152,12 @@ export function EditAgentModal({ isOpen, onClose, onSubmit, agent }: EditAgentMo
       return;
     }
     
+    // Validate phone number format if provided
+    if (formData.inbound_phone_number && !/^\+[1-9]\d{1,14}$/.test(formData.inbound_phone_number)) {
+      toast.error("Phone number must be in international format (e.g., +441344959607)");
+      return;
+    }
+
     // Validate required fields based on agent type
     if (selectedAgentType === 'SPEECH') {
       if (!formData.name || !formData.description || !formData.voice_provider || !formData.voice || !formData.model_resource) {
@@ -175,7 +184,8 @@ export function EditAgentModal({ isOpen, onClose, onSubmit, agent }: EditAgentMo
         model_provider: formData.model_provider,
         model_resource: formData.model_resource,
         agent_type: agent.agent_type || agent.type || 'SPEECH',
-        tool_ids: formData.tool_ids
+        tool_ids: formData.tool_ids,
+        inbound_phone_number: formData.inbound_phone_number
       };
 
       const response = await agentAPI.updateAgent(agent.id.toString(), agentData);
@@ -261,6 +271,23 @@ export function EditAgentModal({ isOpen, onClose, onSubmit, agent }: EditAgentMo
                       </span>
                     )}
                   </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="inbound_phone_number">Twilio Incoming Phone Number</Label>
+                  <Input
+                    id="inbound_phone_number"
+                    placeholder="+441344959607"
+                    value={formData.inbound_phone_number}
+                    onChange={(e) => setFormData(prev => ({ ...prev, inbound_phone_number: e.target.value }))}
+                    type="tel"
+                    className={formData.inbound_phone_number && !/^\+[1-9]\d{1,14}$/.test(formData.inbound_phone_number) ? "border-red-500" : ""}
+                  />
+                  <p className={`text-xs ${formData.inbound_phone_number && !/^\+[1-9]\d{1,14}$/.test(formData.inbound_phone_number) ? "text-red-500" : "text-muted-foreground"}`}>
+                    {formData.inbound_phone_number && !/^\+[1-9]\d{1,14}$/.test(formData.inbound_phone_number) 
+                      ? "Invalid format. Use international format (e.g., +441344959607)" 
+                      : "Enter the Twilio phone number in international format (e.g., +441344959607)"}
+                  </p>
                 </div>
               </div>
             </div>

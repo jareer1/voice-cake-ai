@@ -78,7 +78,8 @@ export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModal
     model_provider: "",
     model_resource: "",
     instructions: "",
-    tool_ids: [] as string[]
+    tool_ids: [] as string[],
+    inbound_phone_number: ""
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -94,7 +95,8 @@ export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModal
         model_provider: "",
         model_resource: "",
         instructions: "",
-        tool_ids: []
+        tool_ids: [],
+        inbound_phone_number: ""
       });
     }
   }, [isOpen]);
@@ -114,6 +116,12 @@ export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModal
       return;
     }
     
+    // Validate phone number format if provided
+    if (formData.inbound_phone_number && !/^\+[1-9]\d{1,14}$/.test(formData.inbound_phone_number)) {
+      toast.error("Phone number must be in international format (e.g., +441344959607)");
+      return;
+    }
+
     // Validate required fields based on agent type
     if (selectedAgentType === 'SPEECH') {
       if (!formData.name || !formData.description || !formData.voice_provider || !formData.voice || !formData.model_resource) {
@@ -140,7 +148,8 @@ export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModal
         model_provider: formData.model_provider,
         model_resource: formData.model_resource,
         agent_type: selectedAgentType!,
-        tool_ids: formData.tool_ids
+        tool_ids: formData.tool_ids,
+        inbound_phone_number: formData.inbound_phone_number
       };
 
       const response = await agentAPI.createAgent(agentData);
@@ -167,7 +176,8 @@ export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModal
       model_provider: "",
       model_resource: "",
       instructions: "",
-      tool_ids: []
+      tool_ids: [],
+      inbound_phone_number: ""
     });
     onClose();
   };
@@ -290,6 +300,23 @@ export function CreateAgentModal({ isOpen, onClose, onSubmit }: CreateAgentModal
                         )}
                       </div>
                     </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="inbound_phone_number">Twilio Incoming Phone Number</Label>
+                    <Input
+                      id="inbound_phone_number"
+                      placeholder="+441344959607"
+                      value={formData.inbound_phone_number}
+                      onChange={(e) => setFormData(prev => ({ ...prev, inbound_phone_number: e.target.value }))}
+                      type="tel"
+                      className={formData.inbound_phone_number && !/^\+[1-9]\d{1,14}$/.test(formData.inbound_phone_number) ? "border-red-500" : ""}
+                    />
+                    <p className={`text-xs ${formData.inbound_phone_number && !/^\+[1-9]\d{1,14}$/.test(formData.inbound_phone_number) ? "text-red-500" : "text-muted-foreground"}`}>
+                      {formData.inbound_phone_number && !/^\+[1-9]\d{1,14}$/.test(formData.inbound_phone_number) 
+                        ? "Invalid format. Use international format (e.g., +441344959607)" 
+                        : "Enter the Twilio phone number in international format (e.g., +441344959607)"}
+                    </p>
                   </div>
                 </div>
               </>

@@ -1,6 +1,7 @@
 import axios from "axios";
 import config from "@/lib/config";
 import { VoiceCloneCreate, VoiceCloneResponse } from "@/types/voice";
+import { CallLogsResponse, CallLogsFilters } from "@/types/callLog";
 import { toast } from "sonner";
 import { 
   handleRefreshTokenExpiration, 
@@ -337,6 +338,23 @@ export const liveKitAPI = {
       participant_name: participantName || `User_${Date.now()}`
     });
     return handleApiResponse(response);
+  }
+};
+
+// Call Logs API functions
+export const callLogsAPI = {
+  getCallLogs: async (filters?: CallLogsFilters): Promise<CallLogsResponse> => {
+    const params = new URLSearchParams();
+    
+    if (filters?.limit) params.append('limit', filters.limit.toString());
+    if (filters?.offset) params.append('offset', filters.offset.toString());
+    if (filters?.status) params.append('status', filters.status);
+    if (filters?.agent_id) params.append('agent_id', filters.agent_id);
+    if (filters?.date_from) params.append('date_from', filters.date_from);
+    if (filters?.date_to) params.append('date_to', filters.date_to);
+    
+    const response = await api.get(`/sessions/call-logs?${params.toString()}`);
+    return handleApiResponse(response) as CallLogsResponse;
   }
 };
 

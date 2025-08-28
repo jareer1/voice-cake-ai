@@ -29,6 +29,7 @@ import PublicInference from "./pages/PublicInference";
 import LiveKitTest from "./pages/LiveKitTest";
 import Tools from "./pages/Tools";
 import ApiKeys from "./pages/ApiKeys";
+import CallLogs from "./pages/CallLogs";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -145,6 +146,13 @@ const App = () => {
                 <ProtectedRoute>
                   <AppLayout>
                     <ApiKeys />
+                  </AppLayout>
+                </ProtectedRoute>
+              } />
+              <Route path="/call-logs" element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <CallLogs />
                   </AppLayout>
                 </ProtectedRoute>
               } />
