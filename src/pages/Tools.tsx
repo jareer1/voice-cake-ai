@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { useAuth } from "@/context/authContext";
 import api from "@/pages/services/api";
 
 interface SchemaProperty {
+  id?: string; // Add unique ID for stable React keys
   name: string;
   type: 'string' | 'number' | 'boolean' | 'object' | 'array';
   description: string;
@@ -38,7 +39,7 @@ interface Tool {
   };
   webhook_url?: string;
   webhook_secret?: string;
-  timeout?: number;
+  timeout?: number | null;
   max_retries?: number;
   is_active: boolean;
   is_public: boolean;
@@ -78,7 +79,7 @@ export default function Tools() {
     },
     webhook_url: '',
     webhook_secret: '',
-    timeout: 120,
+    timeout: null,
     max_retries: 3,
     is_active: true,
     is_public: false
@@ -144,7 +145,7 @@ export default function Tools() {
       },
       webhook_url: '',
       webhook_secret: '',
-      timeout: 120,
+      timeout: null,
       max_retries: 3,
       is_active: true,
       is_public: false
@@ -154,39 +155,39 @@ export default function Tools() {
     setShowForm(false);
   };
 
-  const addInputProperty = () => {
-    
+  const addInputProperty = useCallback(() => {
     const newProperty: SchemaProperty = {
+      id: `prop-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Add unique ID
       name: '',
       type: 'string',
       description: '',
       required: false
     };
 
-    const updatedProperties = [...inputProperties, newProperty];
+    setInputProperties(prevProperties => [...prevProperties, newProperty]);
+  }, []);
 
-    setInputProperties(updatedProperties);
-  };
-
-  const updateInputProperty = (
+  const updateInputProperty = useCallback((
     index: number,
     field: keyof SchemaProperty,
     value: any
   ) => {
-    const updatedProperties = [...inputProperties];
-    
-    if (field === 'enum') {
-      (updatedProperties[index] as any)[field] = value ? value.split(',').map((v: string) => v.trim()) : undefined;
-    } else {
-      (updatedProperties[index] as any)[field] = value;
-    }
+    setInputProperties(prevProperties => {
+      const updatedProperties = [...prevProperties];
+      
+      if (field === 'enum') {
+        (updatedProperties[index] as any)[field] = value ? value.split(',').map((v: string) => v.trim()) : undefined;
+      } else {
+        (updatedProperties[index] as any)[field] = value;
+      }
 
-    setInputProperties(updatedProperties);
-  };
+      return updatedProperties;
+    });
+  }, []);
 
-  const removeInputProperty = (index: number) => {
-    setInputProperties(inputProperties.filter((_, i) => i !== index));
-  };
+  const removeInputProperty = useCallback((index: number) => {
+    setInputProperties(prevProperties => prevProperties.filter((_, i) => i !== index));
+  }, []);
 
   const buildSchema = (properties: SchemaProperty[]) => {
     const schemaProperties: Record<string, any> = {};
@@ -228,7 +229,15 @@ export default function Tools() {
     if (!formData.description.trim()) return 'Description is required';
     if (!formData.webhook_url.trim()) return 'Webhook URL is required';
     if (!/^https?:\/\/.+/.test(formData.webhook_url)) return 'Webhook URL must start with http:// or https://';
-    if (formData.timeout < 10 || formData.timeout > 300) return 'Timeout must be between 10 and 300 seconds';
+    
+    // Validate timeout - check for empty value and range
+    if (formData.timeout === null || formData.timeout === undefined) {
+      return 'Timeout is required';
+    }
+    if (typeof formData.timeout === 'number' && (formData.timeout < 10 || formData.timeout > 300)) {
+      return 'Timeout must be between 10 and 300 seconds';
+    }
+    
     if (formData.max_retries < 1 || formData.max_retries > 10) return 'Max retries must be between 1 and 10';
 
     // Validate that at least one input property has a name
@@ -274,12 +283,22 @@ export default function Tools() {
           headers: { Authorization: `Bearer ${token}` }
         });
         
-        // Handle standardized response format
+        console.log('Update tool response:', response.data);
+        
+        // Handle response format - backend returns tool data directly on success
         if (response.data && typeof response.data === 'object') {
           if (response.data.success === true) {
+            // Standardized response format
             setSuccess(response.data.message || 'Tool updated successfully');
-          } else {
+          } else if (response.data.success === false) {
+            // Error in standardized format
             throw new Error(response.data.message || 'Failed to update tool');
+          } else if (response.data.id) {
+            // Direct tool data response (success)
+            setSuccess('Tool updated successfully');
+          } else {
+            // Unknown response format, assume success if we got data
+            setSuccess('Tool updated successfully');
           }
         } else {
           setSuccess('Tool updated successfully');
@@ -289,12 +308,22 @@ export default function Tools() {
           headers: { Authorization: `Bearer ${token}` }
         });
         
-        // Handle standardized response format
+        console.log('Create tool response:', response.data);
+        
+        // Handle response format - backend returns tool data directly on success
         if (response.data && typeof response.data === 'object') {
           if (response.data.success === true) {
+            // Standardized response format
             setSuccess(response.data.message || 'Tool created successfully');
-          } else {
+          } else if (response.data.success === false) {
+            // Error in standardized format
             throw new Error(response.data.message || 'Failed to create tool');
+          } else if (response.data.id) {
+            // Direct tool data response (success)
+            setSuccess('Tool created successfully');
+          } else {
+            // Unknown response format, assume success if we got data
+            setSuccess('Tool created successfully');
           }
         } else {
           setSuccess('Tool created successfully');
@@ -304,8 +333,21 @@ export default function Tools() {
       await loadTools();
       resetForm();
     } catch (error: any) {
-      setError(error.response?.data?.detail || 'Failed to save tool');
       console.error('Error saving tool:', error);
+      console.error('Error response:', error.response?.data);
+      
+      // Try to extract meaningful error message
+      let errorMessage = 'Failed to save tool';
+      
+      if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -316,7 +358,7 @@ export default function Tools() {
     const toolWithDefaults = {
       ...tool,
       webhook_url: tool.webhook_url || '',
-      timeout: tool.timeout || 120,
+      timeout: tool.timeout ?? null, // Allow null, don't default to 120
       max_retries: tool.max_retries || 3,
       input_schema: tool.input_schema || { type: 'object' as const, properties: {}, required: [] },
       output_schema: tool.output_schema || { type: 'object' as const, properties: {}, required: [] }
@@ -348,12 +390,17 @@ export default function Tools() {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      // Handle standardized response format
+      // Handle response format - backend might return data directly or use standardized format
       if (response.data && typeof response.data === 'object') {
         if (response.data.success === true) {
+          // Standardized response format
           setSuccess(response.data.message || 'Tool deleted successfully');
-        } else {
+        } else if (response.data.success === false) {
+          // Error in standardized format
           throw new Error(response.data.message || 'Failed to delete tool');
+        } else {
+          // Direct response or unknown format, assume success if we got a response
+          setSuccess('Tool deleted successfully');
         }
       } else {
         setSuccess('Tool deleted successfully');
@@ -366,14 +413,84 @@ export default function Tools() {
     }
   };
 
-  // PropertyEditor Component
+  // Separate component for property input to prevent re-renders
+  const PropertyInput: React.FC<{
+    property: SchemaProperty;
+    index: number;
+    onUpdate: (index: number, field: keyof SchemaProperty, value: any) => void;
+    onRemove: (index: number) => void;
+  }> = React.memo(({ property, index, onUpdate, onRemove }) => {
+    return (
+      <Card key={property.id || `fallback-${index}`} className="p-4 border border-gray-200">
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 gap-4">
+            <div className="space-y-2">
+              <Label>Property Name*</Label>
+              <Input
+                value={property.name}
+                onChange={(e) => onUpdate(index, 'name', e.target.value)}
+                placeholder="property_name"
+                autoComplete="off"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Type*</Label>
+              <select
+                value={property.type}
+                onChange={(e) => onUpdate(index, 'type', e.target.value as any)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              >
+                <option value="string">String</option>
+                <option value="number">Number</option>
+                <option value="boolean">Boolean</option>
+                <option value="object">Object</option>
+                <option value="array">Array</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Description*</Label>
+              <Input
+                value={property.description}
+                onChange={(e) => onUpdate(index, 'description', e.target.value)}
+                placeholder="Property description"
+                autoComplete="off"
+              />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={property.required}
+                onChange={(e) => onUpdate(index, 'required', e.target.checked)}
+              />
+              <Label>Required</Label>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Button
+                onClick={() => onRemove(index)}
+                variant="destructive"
+                size="sm"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Remove Property
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Card>
+    );
+  });
+
   const PropertyEditor: React.FC<{
     properties: SchemaProperty[];
     type: 'input' | 'output';
     onAdd: () => void;
     onUpdate: (index: number, field: keyof SchemaProperty, value: any) => void;
     onRemove: (index: number) => void;
-  }> = ({ properties, type, onAdd, onUpdate, onRemove }) => {
+  }> = useCallback(({ properties, type, onAdd, onUpdate, onRemove }) => {
       return (
         <div className="space-y-4 p-2 bg-gray-50 min-h-[200px]">
           <div className="flex items-center justify-between bg-white p-3 rounded border">
@@ -381,7 +498,7 @@ export default function Tools() {
               {type === 'input' ? 'Input' : 'Output'} Properties
             </h4>
             <Button 
-            onClick={onAdd}
+              onClick={onAdd}
               size="sm" 
               variant="outline"
               className="bg-blue-500 text-white hover:bg-blue-600"
@@ -391,75 +508,24 @@ export default function Tools() {
             </Button>
           </div>
 
-        {properties.map((property, index) => (
-          <Card key={`${type}-${index}`} className="p-4 border border-gray-200">
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 gap-4">
-                  <div className="space-y-2">
-                    <Label>Property Name*</Label>
-                    <Input
-                      value={property.name}
-                    onChange={(e) => onUpdate(index, 'name', e.target.value)}
-                      placeholder="property_name"
-                    />
-                  </div>
+          {properties.map((property, index) => (
+            <PropertyInput
+              key={property.id || `fallback-${type}-${index}`}
+              property={property}
+              index={index}
+              onUpdate={onUpdate}
+              onRemove={onRemove}
+            />
+          ))}
 
-                  <div className="space-y-2">
-                    <Label>Type*</Label>
-                    <select
-                      value={property.type}
-                    onChange={(e) => onUpdate(index, 'type', e.target.value as any)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    >
-                      <option value="string">String</option>
-                      <option value="number">Number</option>
-                      <option value="boolean">Boolean</option>
-                      <option value="object">Object</option>
-                      <option value="array">Array</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Description*</Label>
-                    <Input
-                      value={property.description}
-                    onChange={(e) => onUpdate(index, 'description', e.target.value)}
-                      placeholder="Property description"
-                    />
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      checked={property.required}
-                    onChange={(e) => onUpdate(index, 'required', e.target.checked)}
-                    />
-                    <Label>Required</Label>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Button
-                    onClick={() => onRemove(index)}
-                      variant="destructive"
-                      size="sm"
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                    Remove Property
-                    </Button>
-                </div>
-                </div>
-              </div>
-            </Card>
-        ))}
-
-        {properties.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground bg-white p-4 rounded border">
-            No {type} properties defined. Click "Add Property" to get started.
-          </div>
-        )}
+          {properties.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground bg-white p-4 rounded border">
+              No {type} properties defined. Click "Add Property" to get started.
+            </div>
+          )}
         </div>
       );
-  };
+  }, []);
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
@@ -656,12 +722,25 @@ export default function Tools() {
                       <Label htmlFor="timeout">Timeout (seconds)*</Label>
                       <Input
                         id="timeout"
-                        type="number"
-                        min="10"
-                        max="300"
-                        value={formData.timeout}
-                        onChange={(e) => setFormData({...formData, timeout: parseInt(e.target.value) || 120})}
+                        type="text"
+                        placeholder="Enter timeout in seconds (10-300)"
+                        value={formData.timeout === null || formData.timeout === undefined ? '' : formData.timeout.toString()}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value === '') {
+                            // Allow empty value
+                            setFormData({...formData, timeout: null as any});
+                          } else {
+                            const numValue = parseInt(value);
+                            if (!isNaN(numValue)) {
+                              setFormData({...formData, timeout: numValue});
+                            }
+                          }
+                        }}
                       />
+                      <p className="text-xs text-muted-foreground">
+                        Must be between 10 and 300 seconds
+                      </p>
                     </div>
 
                     <div className="space-y-2">
