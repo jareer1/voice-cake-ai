@@ -3,98 +3,135 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VoiceCake Widget - Local Test</title>
+    <title>VoiceCake Widget - Live Test</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             margin: 0;
             padding: 20px;
-            background: #f5f5f5;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
         }
         
         .container {
             max-width: 800px;
             margin: 0 auto;
-            background: white;
+            background: rgba(255, 255, 255, 0.1);
             padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
         }
         
         h1 {
-            color: #333;
             text-align: center;
             margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
         
         .test-section {
-            background: #f8f9fa;
+            background: rgba(255, 255, 255, 0.1);
             padding: 20px;
-            border-radius: 8px;
+            border-radius: 15px;
             margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
         
         .status {
-            padding: 10px;
-            border-radius: 5px;
-            margin: 10px 0;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
             font-weight: bold;
+            text-align: center;
         }
         
         .status.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+            background: rgba(76, 175, 80, 0.3);
+            border: 1px solid rgba(76, 175, 80, 0.5);
         }
         
         .status.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+            background: rgba(244, 67, 54, 0.3);
+            border: 1px solid rgba(244, 67, 54, 0.5);
         }
         
         .status.info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
+            background: rgba(33, 150, 243, 0.3);
+            border: 1px solid rgba(33, 150, 243, 0.5);
         }
         
         .btn {
-            background: #007bff;
+            background: rgba(255, 255, 255, 0.2);
             color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 12px 24px;
+            border-radius: 8px;
             cursor: pointer;
-            margin: 5px;
+            margin: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
         }
         
         .btn:hover {
-            background: #0056b3;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
         }
         
         .console-output {
-            background: #1a1a1a;
+            background: rgba(0, 0, 0, 0.3);
             color: #f8f8f2;
-            padding: 15px;
-            border-radius: 5px;
+            padding: 20px;
+            border-radius: 10px;
             font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-            font-size: 12px;
+            font-size: 13px;
             max-height: 300px;
             overflow-y: auto;
+            margin: 15px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .code-block {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 12px;
             margin: 10px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .feature-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .feature-icon {
+            font-size: 2em;
+            margin-bottom: 10px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎙️ VoiceCake Widget - Local Test</h1>
+        <h1>🎙️ VoiceCake Widget - Live Test</h1>
         
         <div class="test-section">
             <h3>🔧 Test Configuration</h3>
-            <p><strong>Backend URL:</strong> http://127.0.0.1:8000</p>
-            <p><strong>Agent ID:</strong> 49</p>
-            <p><strong>Agent Type:</strong> TEXT</p>
+            <p><strong>Widget URL:</strong> <span id="widget-url">Loading...</span></p>
+            <p><strong>Agent ID:</strong> 53</p>
+            <p><strong>Backend:</strong> voicecake-ame5ascacvgrgde6.canadacentral-01.azurewebsites.net</p>
         </div>
         
         <div class="test-section">
@@ -103,7 +140,7 @@
             <button class="btn" onclick="destroyWidget()">Destroy Widget</button>
             <button class="btn" onclick="checkStatus()">Check Status</button>
             <button class="btn" onclick="clearConsole()">Clear Console</button>
-            <button class="btn" onclick="testAudioWave()">Test Audio Wave</button>
+            <button class="btn" onclick="testWebSocket()">Test WebSocket</button>
         </div>
         
         <div class="test-section">
@@ -121,15 +158,45 @@
         </div>
         
         <div class="test-section">
+            <h3>🚀 Implementation Code</h3>
+            <p>Copy this code to embed the widget on any website:</p>
+            <div class="code-block">
+&lt;script src="<span id="script-url">https://your-domain.vercel.app/voicecake-widget.js</span>" data-agent-id="53"&gt;&lt;/script&gt;
+            </div>
+        </div>
+        
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🎯</div>
+                <h4>Easy Integration</h4>
+                <p>Single script tag implementation</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔒</div>
+                <h4>Secure</h4>
+                <p>WebSocket connections with WSS</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📱</div>
+                <h4>Responsive</h4>
+                <p>Works on all devices</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h4>Fast</h4>
+                <p>Lightweight and optimized</p>
+            </div>
+        </div>
+        
+        <div class="test-section">
             <h3>📋 Instructions</h3>
             <ol>
-                <li>Make sure your backend is running on <code>http://127.0.0.1:8000</code></li>
                 <li>Click "Test Widget" to initialize the widget</li>
                 <li>Click the widget button in the bottom-right corner</li>
                 <li>Click "Start Voice Chat" to test the connection</li>
-                <li>You should hear the TEXT agent's voice</li>
-                <li>Click "Test Audio Wave" to see the wave animations</li>
-                <li>During calls, the wave animates when anyone is speaking</li>
+                <li>You should hear the agent's voice</li>
+                <li>Test the WebSocket connection</li>
+                <li>Copy the implementation code to your website</li>
             </ol>
         </div>
     </div>
@@ -137,14 +204,21 @@
     <!-- Load LiveKit client library -->
     <script src="https://unpkg.com/livekit-client@2.15.5/dist/livekit-client.umd.js"></script>
     
-    <!-- Load the widget script -->
+    <!-- VoiceCake Widget Script -->
     <script src="voicecake-widget.js" 
-            data-agent-id="49" 
+            data-agent-id="53" 
             data-position="bottom-right" 
             data-theme="light">
     </script>
     
     <script>
+        // Update URLs with current domain
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentDomain = window.location.origin;
+            document.getElementById('widget-url').textContent = currentDomain + '/voicecake-widget.js';
+            document.getElementById('script-url').textContent = currentDomain + '/voicecake-widget.js';
+        });
+        
         // Capture console output
         const originalLog = console.log;
         const originalError = console.error;
@@ -186,7 +260,7 @@
                 
                 try {
                     window.VoiceCakeWidget.init({
-                        agentId: '49',
+                        agentId: '53',
                         position: 'bottom-right',
                         theme: 'light'
                     });
@@ -235,26 +309,27 @@
             consoleOutput.innerHTML = '<div>Console cleared...</div>';
         }
         
-        function testAudioWave() {
+        function testWebSocket() {
             if (window.VoiceCakeWidget) {
-                // Show audio wave
-                window.VoiceCakeWidget.showAudioWave();
+                const wsUrl = `${window.VoiceCakeWidget.config.wsBaseUrl}${window.VoiceCakeWidget.config.humeEndpoint}/53`;
+                console.log('Testing WebSocket connection to:', wsUrl);
                 
-                // Test voice activity
-                window.VoiceCakeWidget.startAudioWave();
-                setTimeout(() => {
-                    window.VoiceCakeWidget.stopAudioWave();
-                }, 3000);
+                const ws = new WebSocket(wsUrl);
                 
-                // Test again after a pause
-                setTimeout(() => {
-                    window.VoiceCakeWidget.startAudioWave();
-                    setTimeout(() => {
-                        window.VoiceCakeWidget.stopAudioWave();
-                    }, 2000);
-                }, 4000);
+                ws.onopen = () => {
+                    console.log('✅ WebSocket connection successful!');
+                    updateStatus('✅ WebSocket connection successful!', 'success');
+                    ws.close();
+                };
                 
-                updateStatus('🎵 Testing audio wave animations...', 'info');
+                ws.onerror = (error) => {
+                    console.error('❌ WebSocket connection failed:', error);
+                    updateStatus('❌ WebSocket connection failed', 'error');
+                };
+                
+                ws.onclose = () => {
+                    console.log('🔒 WebSocket connection closed');
+                };
             } else {
                 updateStatus('❌ Widget not loaded', 'error');
             }

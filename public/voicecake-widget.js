@@ -41,7 +41,7 @@
         setTimeout(() => {
           if (window.LiveKitClient || window.LivekitClient) {
             resolve();
-          } else {
+          console.log('🎯 Taking SPEECH agent path'); } else {
             reject(new Error('VoiceCake: LiveKit client library not available after load'));
           }
         }, 500);
@@ -58,7 +58,7 @@
           setTimeout(() => {
             if (window.LiveKitClient || window.LivekitClient) {
               resolve();
-            } else {
+            console.log('🎯 Taking SPEECH agent path'); } else {
               reject(new Error('VoiceCake: LiveKit client library not available after fallback load'));
             }
           }, 500);
@@ -83,8 +83,8 @@
       size: 'medium',
       autoStart: false,
       showTranscription: true,
-      apiBaseUrl: 'https://voicecakedevelop-hrfygverfwe8g4bj.canadacentral-01.azurewebsites.net/api/v1',
-      wsBaseUrl: 'ws://voicecakedevelop-hrfygverfwe8g4bj.canadacentral-01.azurewebsites.net',
+      apiBaseUrl: 'https://voicecake-ame5ascacvgrgde6.canadacentral-01.azurewebsites.net/api/v1',
+      wsBaseUrl: 'wss://voicecake-ame5ascacvgrgde6.canadacentral-01.azurewebsites.net',
       humeEndpoint: '/api/v1/hume/ws/inference'
     },
     
@@ -112,6 +112,7 @@
     
     init: function(customConfig = {}) {
       console.log('VoiceCake Widget: Initializing with config:', customConfig);
+      console.log('VoiceCake Widget: Default config:', this.config);
       
       if (this.state.isInitialized) {
         console.log('VoiceCake Widget: Already initialized');
@@ -119,6 +120,7 @@
       }
       
       this.config = { ...this.config, ...customConfig };
+      console.log('VoiceCake Widget: Final config after merge:', this.config);
       
       if (!this.config.agentId) {
         console.error('VoiceCake Widget: agentId is required');
@@ -300,7 +302,7 @@
     togglePopup: function() {
       if (this.isPopupOpen()) {
         this.closePopup();
-      } else {
+      console.log('🎯 Taking SPEECH agent path'); } else {
         this.openPopup();
       }
     },
@@ -343,10 +345,10 @@
         }
         
         const agentType = (agentDetails?.agent_type || agentDetails?.type || 'SPEECH')?.toString()?.trim();
-        console.log('Agent type detected:', agentType);
+        console.log('Agent details:', agentDetails); console.log('Agent type detected:', agentType);
         
         // For TEXT agents, use LiveKit session approach
-        if (agentType?.toUpperCase() === 'TEXT') {
+        if (agentType?.toUpperCase() === 'TEXT') { console.log('🎯 Taking TEXT agent path');
           console.log('Using LiveKit session for TEXT agent');
           
           // Get microphone permission
@@ -393,7 +395,7 @@
           // Show a message that TEXT agents are supported
           this.updateStatusMessage('TEXT agent connected successfully!');
           
-        } else {
+        console.log('🎯 Taking SPEECH agent path'); } else {
           // For SPEECH agents, use WebSocket approach
           console.log('Using WebSocket for SPEECH agent');
           
@@ -410,6 +412,11 @@
           this.state.hasPermissions = true;
           
           const wsUrl = `${this.config.wsBaseUrl}${this.config.humeEndpoint}/${this.config.agentId}`;
+          console.log('🔗 Connecting to WebSocket URL:', wsUrl);
+          console.log('🔗 wsBaseUrl:', this.config.wsBaseUrl);
+          console.log('🔗 humeEndpoint:', this.config.humeEndpoint);
+          console.log('🔗 agentId:', this.config.agentId);
+          console.log('🔗 Full config object:', this.config);
           this.refs.socket = new WebSocket(wsUrl);
           
           await new Promise((resolve, reject) => {
@@ -677,7 +684,7 @@
         });
         
         // Connect to room
-        await room.connect(sessionData.url, sessionData.token);
+        console.log("🔗 Attempting LiveKit connection with:", { url: sessionData.url, token: sessionData.token.substring(0, 50) + "..." }); await room.connect(sessionData.url, sessionData.token);
         console.log('✅ Successfully connected to LiveKit room for TEXT agent');
         
       } catch (error) {
@@ -695,7 +702,7 @@
         startBtn.style.display = 'none';
         stopBtn.style.display = 'flex';
         micBtn.style.display = 'flex';
-      } else {
+      console.log('🎯 Taking SPEECH agent path'); } else {
         startBtn.style.display = 'flex';
         stopBtn.style.display = 'none';
         micBtn.style.display = 'none';
@@ -710,7 +717,7 @@
             <line x1="12" x2="12" y1="19" y2="22"></line>
           </svg>
         `;
-      } else {
+      console.log('🎯 Taking SPEECH agent path'); } else {
         micBtn.classList.add('voicecake-muted');
         micBtn.innerHTML = `
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1406,7 +1413,7 @@
       
       console.log('VoiceCake Widget: Auto-initializing with config:', config);
       VoiceCakeWidget.init(config);
-    } else {
+    console.log('🎯 Taking SPEECH agent path'); } else {
       console.log('VoiceCake Widget: Loaded successfully. Use VoiceCakeWidget.init() to initialize.');
     }
   }
@@ -1414,7 +1421,7 @@
   // Wait for DOM to be ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeWidget);
-  } else {
+  console.log('🎯 Taking SPEECH agent path'); } else {
     // DOM is already ready
     initializeWidget();
   }
