@@ -386,7 +386,7 @@ export default function Tools() {
     if (!confirm('Are you sure you want to delete this tool?')) return;
 
     try {
-      const response = await api.delete(`/tools/${toolId}/`, {
+      const response = await api.delete(`/tools/${toolId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
