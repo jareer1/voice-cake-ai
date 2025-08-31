@@ -4,22 +4,27 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useFinance } from "@/context/financeContext";
 import { useNavigate } from "react-router-dom";
+import { WalletInfo } from "@/context/financeContext";
 
 export default function AddOnPurchase() {
   const { purchaseVoiceClone, purchasePremiumVoice, voiceClonePurchased, getWallet, topupWallet, setPremiumSurcharge } = useFinance();
   const navigate = useNavigate();
   const [loading, setLoading] = useState<"vc" | "pv" | null>(null);
-  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [walletInfo, setWalletInfo] = useState<WalletInfo | null>(null);
   const [topupAmount, setTopupAmount] = useState<number>(500); // cents
   const [surcharge, setSurcharge] = useState<number>(0);
 
   const refreshWallet = async () => {
     try {
       const w = await getWallet();
-      setWalletBalance(w.balance_cents);
+      setWalletInfo(w);
+      console.log("AddOnPurchase: walletInfo", w);
       setSurcharge(w.premium_voice_surcharge_cents);
-    } catch {}
+    } catch (error) {
+      // Handle error silently
+    }
   };
+
 
   // Load wallet on mount
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -36,8 +41,9 @@ export default function AddOnPurchase() {
     try {
       await purchaseVoiceClone();
       toast.success("Voice cloning purchased ($5).");
-    } catch (e: any) {
-      toast.error(e?.message ?? "Failed to purchase voice clone");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to purchase voice clone";
+      toast.error(message);
     } finally {
       setLoading(null);
     }
@@ -48,8 +54,9 @@ export default function AddOnPurchase() {
     try {
       await purchasePremiumVoice();
       toast.success("Premium voice surcharge enabled.");
-    } catch (e: any) {
-      toast.error(e?.message ?? "Failed to purchase premium voice");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to purchase premium voice";
+      toast.error(message);
     } finally {
       setLoading(null);
     }
@@ -60,8 +67,9 @@ export default function AddOnPurchase() {
       await topupWallet(topupAmount);
       toast.success("Wallet topped up");
       await refreshWallet();
-    } catch (e: any) {
-      toast.error(e?.message ?? "Top-up failed");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Top-up failed";
+      toast.error(message);
     }
   };
 
@@ -70,8 +78,9 @@ export default function AddOnPurchase() {
       await setPremiumSurcharge(surcharge);
       toast.success("Premium surcharge updated");
       await refreshWallet();
-    } catch (e: any) {
-      toast.error(e?.message ?? "Failed to update surcharge");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to update surcharge";
+      toast.error(message);
     }
   };
 
@@ -105,8 +114,59 @@ export default function AddOnPurchase() {
         <CardContent className="p-6 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold">Wallet</h2>
-            <div className="text-sm text-muted-foreground">Balance: {walletBalance !== null ? `$${(walletBalance/100).toFixed(2)}` : "—"}</div>
+            <div className="text-sm text-muted-foreground">Balance: {walletInfo !== null ? `$${(walletInfo.balance_cents/100).toFixed(2)}` : "—"}</div>
           </div>
+          
+          {/* Free Allowances Section */}
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold text-muted-foreground">Free Allowances</h3>
+            
+            {/* Minutes Allowance */}
+            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">Minutes</span>
+                <span className="text-xs text-muted-foreground">
+                  {walletInfo !== null ? `${Math.max(0, (walletInfo.free_minutes_limit || 0) - (walletInfo.free_minutes_used || 0))} remaining` : "—"}
+                </span>
+              </div>
+              <div className="text-right">
+                <div className="text-sm font-medium">
+                  {walletInfo !== null ? `${walletInfo.free_minutes_used || 0}/${walletInfo.free_minutes_limit || 0}` : "—"}
+                </div>
+                {walletInfo !== null && (walletInfo.free_minutes_limit || 0) > 0 && (walletInfo.free_minutes_used || 0) >= (walletInfo.free_minutes_limit || 0) && (
+                  <div className="text-xs text-red-500 font-medium">All used</div>
+                )}
+              </div>
+            </div>
+            
+            {/* Automations Allowance */}
+            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">Automations</span>
+                <span className="text-xs text-muted-foreground">
+                  {walletInfo !== null ? `${Math.max(0, (walletInfo.free_automations_limit || 0) - (walletInfo.free_automations_used || 0))} remaining` : "—"}
+                </span>
+              </div>
+              <div className="text-right">
+                <div className="text-sm font-medium">
+                  {walletInfo !== null ? `${walletInfo.free_automations_used || 0}/${walletInfo.free_automations_limit || 0}` : "—"}
+                </div>
+                {walletInfo !== null && (walletInfo.free_automations_limit || 0) > 0 && (walletInfo.free_automations_used || 0) >= (walletInfo.free_automations_limit || 0) && (
+                  <div className="text-xs text-red-500 font-medium">All used</div>
+                )}
+              </div>
+            </div>
+            
+            {/* No Allowances Message */}
+            {walletInfo !== null && 
+             (walletInfo.free_minutes_limit || 0) === 0 && 
+             (walletInfo.free_automations_limit || 0) === 0 && (
+              <div className="text-center p-3 bg-muted/30 rounded-lg">
+                <div className="text-sm text-muted-foreground">No free allowances available</div>
+              </div>
+            )}
+          </div>
+          
           <div className="flex gap-2 items-center">
             <input type="number" value={topupAmount} onChange={(e) => setTopupAmount(parseInt(e.target.value||'0'))} className="border rounded px-2 py-1 w-32" />
             <span className="text-sm text-muted-foreground">cents</span>

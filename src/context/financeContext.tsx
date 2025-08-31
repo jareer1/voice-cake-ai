@@ -53,6 +53,10 @@ export interface WalletInfo {
   balance_cents: number;
   currency: string;
   premium_voice_surcharge_cents: number;
+  free_minutes_limit: number;
+  free_automations_limit: number;
+  free_minutes_used: number;
+  free_automations_used: number;
   updated_at: string;
 }
 
@@ -304,7 +308,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const getWallet = useCallback(async (): Promise<WalletInfo> => {
     const { data } = await api.get(`/finance/wallet`);
-    return data as WalletInfo;
+    return data.data as WalletInfo;
   }, []);
 
   const topupWallet = useCallback(async (amount_cents: number): Promise<WalletInfo> => {
