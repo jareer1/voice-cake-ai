@@ -11,6 +11,9 @@ import type { VoiceClone, VoiceCloneResponse, VoiceCloneCreate } from "@/types/v
 import { VoiceCloneLanguage } from "@/types/voice";
 import { voiceCloneAPI } from "@/pages/services/api";
 import { useToast } from "@/hooks/use-toast";
+import { useFinance } from "@/context/financeContext";
+import type { WalletInfo, VoiceCloneEligibility } from "@/context/financeContext";
+import { getErrorMessage } from "@/utils/authUtils";
 
 // Helper function to convert API response to legacy format for existing components
 const convertToLegacyFormat = (apiResponse: VoiceCloneResponse): VoiceClone => ({
@@ -30,11 +33,15 @@ export default function VoiceClone() {
   const [voiceClones, setVoiceClones] = useState<VoiceClone[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  const [walletInfo, setWalletInfo] = useState<WalletInfo | null>(null);
+  const [eligibility, setEligibility] = useState<VoiceCloneEligibility | null>(null);
   const { toast } = useToast();
+  const { voiceCloneEligibility, getWallet } = useFinance();
 
-  // Fetch voice clones on component mount
+  // Fetch voice clones and wallet info on component mount
   useEffect(() => {
     fetchVoiceClones();
+    fetchWalletAndEligibility();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchVoiceClones = async () => {
@@ -52,6 +59,19 @@ export default function VoiceClone() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchWalletAndEligibility = async () => {
+    try {
+      const [walletData, eligibilityData] = await Promise.all([
+        getWallet(),
+        voiceCloneEligibility()
+      ]);
+      setWalletInfo(walletData);
+      setEligibility(eligibilityData);
+    } catch (error) {
+      console.error('Error fetching wallet and eligibility:', error);
     }
   };
 
@@ -78,10 +98,10 @@ export default function VoiceClone() {
         description: "Voice clone created successfully!",
       });
     } catch (error) {
-      console.error('Error creating voice clone:', error);
+      const message = getErrorMessage(error);
       toast({
         title: "Error",
-        description: "Failed to create voice clone. Please try again.",
+        description: message,
         variant: "destructive",
       });
       throw error; // Re-throw so VoiceRecorder knows there was an error
@@ -110,6 +130,43 @@ export default function VoiceClone() {
           Create Voice Clone
         </Button>
       </div>
+
+      {/* Eligibility Status */}
+      {eligibility && (
+        <Card className="border-l-4 border-l-theme-primary">
+          <CardContent className="p-4">
+            {eligibility.eligible && eligibility.eligible_type === "free" ? (
+              <div className="flex items-start gap-3">
+                <div className="w-2 h-2 rounded-full bg-green-500 mt-2"></div>
+                <div>
+                  <h3 className="font-semibold text-green-700">You have one free clone available!</h3>
+                  <p className="text-sm text-muted-foreground">Create your first custom voice at no cost.</p>
+                </div>
+              </div>
+            ) : eligibility.eligible && eligibility.eligible_type === "paid" ? (
+              <div className="flex items-start gap-3">
+                <div className="w-2 h-2 rounded-full bg-green-500 mt-2"></div>
+                <div>
+                  <h3 className="font-semibold text-green-700">Ready to clone</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Just $0.49 per voice clone (Current balance: ${walletInfo ? (walletInfo.balance_cents / 100).toFixed(2) : '0.00'}).
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-start gap-3">
+                <div className="w-2 h-2 rounded-full bg-yellow-500 mt-2"></div>
+                <div>
+                  <h3 className="font-semibold text-yellow-700">Top up needed</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Add funds to start cloning voices. Only $0.49 per clone (Current: ${walletInfo ? (walletInfo.balance_cents / 100).toFixed(2) : '0.00'}).
+                  </p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
             {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

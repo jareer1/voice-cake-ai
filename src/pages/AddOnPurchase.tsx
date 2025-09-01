@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { WalletInfo } from "@/context/financeContext";
 
 export default function AddOnPurchase() {
-  const { purchaseVoiceClone, purchasePremiumVoice, voiceClonePurchased, getWallet, topupWallet, setPremiumSurcharge } = useFinance();
+  const { purchasePremiumVoice, getWallet, topupWallet, setPremiumSurcharge } = useFinance();
   const navigate = useNavigate();
   const [loading, setLoading] = useState<"vc" | "pv" | null>(null);
   const [walletInfo, setWalletInfo] = useState<WalletInfo | null>(null);
@@ -31,22 +31,8 @@ export default function AddOnPurchase() {
   useState(() => { refreshWallet(); });
 
   const handleVoiceClone = async () => {
-    if (voiceClonePurchased) {
-      // If already purchased, redirect to voice clone page
       navigate("/voice-clone");
       return;
-    }
-
-    setLoading("vc");
-    try {
-      await purchaseVoiceClone();
-      toast.success("Voice cloning purchased ($5).");
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Failed to purchase voice clone";
-      toast.error(message);
-    } finally {
-      setLoading(null);
-    }
   };
 
   const handlePremiumVoice = async () => {
@@ -90,10 +76,10 @@ export default function AddOnPurchase() {
         <CardContent className="p-6 space-y-4">
           <div>
             <h2 className="text-xl font-bold">Voice Cloning</h2>
-            <p className="text-muted-foreground text-sm">Clone a new voice for $5 one-time</p>
+            <p className="text-muted-foreground text-sm">Clone a new voice for $0.49 per clone</p>
           </div>
-          <Button className="btn-theme-gradient" onClick={handleVoiceClone} disabled={loading === "vc"}>
-            {loading === "vc" ? "Processing..." : voiceClonePurchased ? "Clone Your Voice" : "Purchase ($5)"}
+          <Button className="btn-theme-gradient" onClick={handleVoiceClone}>
+            Clone Custom Voices
           </Button>
         </CardContent>
       </Card>
