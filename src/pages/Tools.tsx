@@ -279,7 +279,7 @@ export default function Tools() {
       };
 
       if (editingTool) {
-        const response = await api.put(`/tools/${editingTool.id}/`, toolData, {
+                 const response = await api.put(`/tools/${editingTool.id}`, toolData, {
           headers: { Authorization: `Bearer ${token}` }
         });
         
