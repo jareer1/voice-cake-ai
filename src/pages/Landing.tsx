@@ -26,7 +26,7 @@ export default function Landing() {
 
   const handleTestClick = () => {
     // Keep test on main domain for public access
-    navigate("/test");
+    // navigate("/test");
   };
 
   const handleDashboardClick = () => {
