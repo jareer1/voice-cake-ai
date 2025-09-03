@@ -123,12 +123,18 @@ export default function CheckoutForm({ plan, autoRenew, onSuccess, onError }: Ch
             <span className="font-medium">{plan.name}</span>
           </div>
           <div className="flex justify-between items-center text-sm mt-1">
-            <span>Minutes:</span>
-            <span className="font-medium">{plan.minutes.toLocaleString()}</span>
+            <span>Includes:</span>
+            <span className="font-medium text-right">
+              {[
+                plan.tts_minutes_included > 0 && `${plan.tts_minutes_included.toLocaleString()} TTS min`,
+                plan.sts_minutes_included > 0 && `${plan.sts_minutes_included.toLocaleString()} STS min`,
+                plan.automations_included && plan.automations_included > 0 && `${plan.automations_included.toLocaleString()} automations`
+              ].filter(Boolean).join(' • ')}
+            </span>
           </div>
           <div className="flex justify-between items-center text-sm mt-1">
             <span>Total:</span>
-            <span className="font-bold text-lg">${plan.price}</span>
+            <span className="font-bold text-lg">${plan.total_price}</span>
           </div>
         </div>
       </div>
@@ -138,7 +144,7 @@ export default function CheckoutForm({ plan, autoRenew, onSuccess, onError }: Ch
         disabled={!stripe || loading}
         className="w-full btn-theme-gradient"
       >
-        {loading ? "Processing..." : `Pay $${plan.price}`}
+        {loading ? "Processing..." : `Pay $${plan.total_price}`}
       </Button>
 
       <div className="text-xs text-gray-500 text-center">
