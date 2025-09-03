@@ -8,8 +8,12 @@ export interface SubscriptionPlan {
   id: number;
   name: string;
   bot_type: BotType;
-  minutes: number;
-  price: number;
+  tts_minutes_included: number;
+  sts_minutes_included: number;
+  automations_included: number | null;
+  price_per_minute: number;
+  price_per_automation: number;
+  total_price: number;
   is_active: boolean;
   created_at: string;
 }
@@ -18,11 +22,15 @@ export interface UserSubscription {
   id: number;
   user_id: number;
   plan_id: number;
+  starts_at: string;
   expires_at: string;
-  minutes_left: number;
+  tts_minutes_left: number;
+  sts_minutes_left: number;
+  automations_left: number | null;
   auto_renew: boolean;
   is_active: boolean;
   created_at: string;
+  updated_at: string;
   plan: SubscriptionPlan;
 }
 
@@ -53,7 +61,16 @@ export interface WalletInfo {
   balance_cents: number;
   currency: string;
   premium_voice_surcharge_cents: number;
+  free_minutes_limit: number;
+  free_automations_limit: number;
+  free_minutes_used: number;
+  free_automations_used: number;
   updated_at: string;
+}
+
+export interface VoiceCloneEligibility {
+  eligible: boolean;
+  eligible_type: "free" | "paid";
 }
 
 type FinanceContextType = {
@@ -82,10 +99,8 @@ type FinanceContextType = {
   revokeApiKey: (key_id: number) => Promise<void>;
 
   // add-ons
-  purchaseVoiceClone: () => Promise<void>;
   purchasePremiumVoice: () => Promise<void>;
-  voiceClonePurchased: boolean;
-
+  voiceCloneEligibility: () => Promise<VoiceCloneEligibility>;
   // wallet
   getWallet: () => Promise<WalletInfo>;
   topupWallet: (amount_cents: number) => Promise<WalletInfo>;
@@ -97,7 +112,6 @@ const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
 export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [activeSubscriptions, setActiveSubscriptions] = useState<Partial<Record<BotType, UserSubscription>>>({});
   const [subscriptionsLoaded, setSubscriptionsLoaded] = useState<boolean>(false);
-  const [voiceClonePurchased, setVoiceClonePurchased] = useState<boolean>(false);
   const { token } = useAuth();
   const hasInitialized = useRef(false);
 
@@ -140,7 +154,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
           // The actual subscription data might be nested in a 'data' property
           const subscriptionData = conversaData.data || conversaData;
           
-          if (subscriptionData && subscriptionData.is_active && subscriptionData.minutes_left > 0) {
+          if (subscriptionData && subscriptionData.is_active && (subscriptionData.tts_minutes_left+subscriptionData.sts_minutes_left > 0)) {
             next.conversa = subscriptionData as UserSubscription;
           }
         }
@@ -155,7 +169,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
           // The actual subscription data might be nested in a 'data' property
           const subscriptionData = empathData.data || empathData;
           
-          if (subscriptionData && subscriptionData.is_active && subscriptionData.minutes_left > 0) {
+          if (subscriptionData && subscriptionData.is_active && (subscriptionData.tts_minutes_left+subscriptionData.sts_minutes_left > 0)) {
             next.empath = subscriptionData as UserSubscription;
           }
         }
@@ -286,18 +300,18 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     await api.post(`/finance/apikey/revoke`, null, { params: { key_id } });
   }, []);
 
-  const purchaseVoiceClone = useCallback(async (): Promise<void> => {
-    await api.post(`/finance/voice-clone`);
-    setVoiceClonePurchased(true);
-  }, []);
-
   const purchasePremiumVoice = useCallback(async (): Promise<void> => {
     await api.post(`/finance/premium-voice`);
   }, []);
 
+  const voiceCloneEligibility = useCallback(async (): Promise<VoiceCloneEligibility> => {
+    const { data } = await api.get(`/finance/voice-clone/eligibility`);
+    return data.data as VoiceCloneEligibility;
+  }, []);
+
   const getWallet = useCallback(async (): Promise<WalletInfo> => {
     const { data } = await api.get(`/finance/wallet`);
-    return data as WalletInfo;
+    return data.data as WalletInfo;
   }, []);
 
   const topupWallet = useCallback(async (amount_cents: number): Promise<WalletInfo> => {
@@ -339,9 +353,8 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       listApiKeys,
       rotateApiKey,
       revokeApiKey,
-      purchaseVoiceClone,
       purchasePremiumVoice,
-      voiceClonePurchased,
+      voiceCloneEligibility,
       getWallet,
       topupWallet,
       setPremiumSurcharge,
@@ -361,9 +374,8 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       listApiKeys,
       rotateApiKey,
       revokeApiKey,
-      purchaseVoiceClone,
       purchasePremiumVoice,
-      voiceClonePurchased,
+      voiceCloneEligibility,
       getWallet,
       topupWallet,
       setPremiumSurcharge,

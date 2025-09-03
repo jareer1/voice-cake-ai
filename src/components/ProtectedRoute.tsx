@@ -3,7 +3,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { hasActiveSubscription, subscriptionsLoaded, refreshSubscriptions } = useFinance();
+  const { hasActiveSubscription, subscriptionsLoaded, refreshSubscriptions, activeSubscriptions } = useFinance();
   const token = localStorage.getItem("authToken");
   const location = useLocation();
   const [isRefreshing, setIsRefreshing] = useState(false);

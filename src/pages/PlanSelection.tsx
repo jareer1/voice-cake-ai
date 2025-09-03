@@ -31,6 +31,7 @@ export default function PlanSelection() {
         const empathPlans = empath.status === "fulfilled" ? empath.value : [];
         
         setPlans({ conversa: conversaPlans, empath: empathPlans });
+        console.log("PlanSelection: plans", plans);
       } catch (error) {
         // Set empty arrays as fallback
         setPlans({ conversa: [], empath: [] });
@@ -138,9 +139,15 @@ export default function PlanSelection() {
                 <CardContent className="p-6 space-y-4">
                   <div>
                     <h3 className="text-xl font-bold">{plan.name}</h3>
-                    <p className="text-muted-foreground text-sm">{plan.minutes.toLocaleString()} minutes • 30 days</p>
+                    <p className="text-muted-foreground text-sm">
+                      {[
+                        plan.tts_minutes_included > 0 && `${plan.tts_minutes_included.toLocaleString()} TTS min`,
+                        plan.sts_minutes_included > 0 && `${plan.sts_minutes_included.toLocaleString()} STS min`,
+                        plan.automations_included && plan.automations_included > 0 && `${plan.automations_included.toLocaleString()} automations`
+                      ].filter(Boolean).join(' • ')} • 30 days
+                    </p>
                   </div>
-                  <div className="text-3xl font-bold">${plan.price}</div>
+                  <div className="text-3xl font-bold">${plan.total_price}</div>
                   <Button
                     className="w-full btn-theme-gradient"
                     onClick={() => handleSelect(plan)}
@@ -153,7 +160,7 @@ export default function PlanSelection() {
                         <CardContent className="p-2 text-center">
                           <div className="text-sm font-semibold text-yellow-700">You already have an active subscription for this plan.</div>
                           <div className="mt-1 text-xs text-yellow-700">
-                            Plan: <span className="font-bold">{activeSub.plan?.name}</span> • {activeSub.minutes_left.toLocaleString()} min left • Expires: {new Date(activeSub.expires_at).toLocaleDateString()}
+                            Plan: <span className="font-bold">{activeSub.plan?.name}</span> • {activeSub.tts_minutes_left+activeSub.sts_minutes_left.toLocaleString()} min left • Expires: {new Date(activeSub.expires_at).toLocaleDateString()}
                           </div>
                         </CardContent>
                       </Card>

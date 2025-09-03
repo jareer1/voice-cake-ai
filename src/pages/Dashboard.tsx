@@ -47,6 +47,10 @@ export default function Dashboard() {
     refreshSubscriptions();
   }, [refreshSubscriptions]);
 
+  // Get active subscription data
+  const activeSubscription = activeSubscriptions.conversa || activeSubscriptions.empath;
+  const subscriptionType = activeSubscriptions.conversa ? "Conversa" : "Empath";
+
   const stats = [
     {
       title: "Total Agents",
@@ -57,20 +61,26 @@ export default function Dashboard() {
       trend: loading ? "" : "Empth 7. Conversa 5"
     },
     {
-      title: "Automation Active",
-      value: "27",
+      title: "Automations Left",
+      value: activeSubscription && activeSubscription.automations_left !== null 
+        ? activeSubscription.automations_left.toString() 
+        : "N/A",
       icon: "automation",
       iconBgColor: "#8965E5",
       cardColor: "#E7E2F3",
-      trend: "Empth 7. Conversa 5"
+      trend: activeSubscription && activeSubscription.automations_left !== null 
+        ? "Available"
+        : "No automations"
     },
     {
-      title: "Minutes Remaining", 
-      value: "300",
+      title: "TTS Minutes Left", 
+      value: activeSubscription ? activeSubscription.tts_minutes_left.toString() : "N/A",
       icon: "clock",
       iconBgColor: "#00CEB6",
       cardColor: "#BAFAF2",
-      trend: "TTS Tokens"
+      trend: activeSubscription 
+        ? "Available"
+        : "No subscription"
     },
     {
       title: "Top Trigger",
