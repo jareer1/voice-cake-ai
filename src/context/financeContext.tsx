@@ -8,8 +8,12 @@ export interface SubscriptionPlan {
   id: number;
   name: string;
   bot_type: BotType;
-  minutes: number;
-  price: number;
+  tts_minutes_included: number;
+  sts_minutes_included: number;
+  automations_included: number | null;
+  price_per_minute: number;
+  price_per_automation: number;
+  total_price: number;
   is_active: boolean;
   created_at: string;
 }
@@ -18,11 +22,15 @@ export interface UserSubscription {
   id: number;
   user_id: number;
   plan_id: number;
+  starts_at: string;
   expires_at: string;
-  minutes_left: number;
+  tts_minutes_left: number;
+  sts_minutes_left: number;
+  automations_left: number | null;
   auto_renew: boolean;
   is_active: boolean;
   created_at: string;
+  updated_at: string;
   plan: SubscriptionPlan;
 }
 
@@ -144,7 +152,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
           // The actual subscription data might be nested in a 'data' property
           const subscriptionData = conversaData.data || conversaData;
           
-          if (subscriptionData && subscriptionData.is_active && subscriptionData.minutes_left > 0) {
+          if (subscriptionData && subscriptionData.is_active && (subscriptionData.tts_minutes_left+subscriptionData.sts_minutes_left > 0)) {
             next.conversa = subscriptionData as UserSubscription;
           }
         }
@@ -159,7 +167,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
           // The actual subscription data might be nested in a 'data' property
           const subscriptionData = empathData.data || empathData;
           
-          if (subscriptionData && subscriptionData.is_active && subscriptionData.minutes_left > 0) {
+          if (subscriptionData && subscriptionData.is_active && (subscriptionData.tts_minutes_left+subscriptionData.sts_minutes_left > 0)) {
             next.empath = subscriptionData as UserSubscription;
           }
         }

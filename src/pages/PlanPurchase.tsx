@@ -136,10 +136,14 @@ export default function PlanPurchase() {
                         VoiceCake {bot === "conversa" ? "Conversa" : "Empath"} Bot
                       </div>
                       <div className="text-sm text-blue-600 mt-1">
-                        {plan.minutes.toLocaleString()} minutes included
+                        {[
+                          plan.tts_minutes_included > 0 && `${plan.tts_minutes_included.toLocaleString()} TTS min`,
+                          plan.sts_minutes_included > 0 && `${plan.sts_minutes_included.toLocaleString()} STS min`,
+                          plan.automations_included && plan.automations_included > 0 && `${plan.automations_included.toLocaleString()} automations`
+                        ].filter(Boolean).join(' • ')}
                       </div>
                     </div>
-                    <div className="text-3xl font-bold text-green-600">${plan.price}</div>
+                    <div className="text-3xl font-bold text-green-600">${plan.total_price}</div>
                   </div>
                 </div>
               ) : (
