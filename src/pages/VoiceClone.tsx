@@ -97,6 +97,8 @@ export default function VoiceClone() {
         title: "Success",
         description: "Voice clone created successfully!",
       });
+
+      fetchWalletAndEligibility()
     } catch (error) {
       const message = getErrorMessage(error);
       toast({
