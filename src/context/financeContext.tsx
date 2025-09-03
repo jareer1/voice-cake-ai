@@ -248,20 +248,13 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
       
       const responseData = response.data;
-      let subscription: UserSubscription | undefined;
-      let apiKey: string | undefined;
       
-      if (responseData.success === true && responseData.data) {
-        // Standardized response format
-        subscription = responseData.data.subscription as UserSubscription;
-        apiKey = responseData.data.api_key as string | undefined;
-      } else if (responseData.subscription) {
-        // Direct response format
-        subscription = responseData.subscription as UserSubscription;
-        apiKey = responseData.api_key as string | undefined;
-      } else {
-        throw new Error(responseData.message || "Payment confirmation failed - invalid response format");
+      // The API returns a standardized response with success, message, data, and request_id
+      if (responseData.success !== true || !responseData.data) {
+        throw new Error(responseData.message || "Payment confirmation failed");
       }
+      
+      const { subscription, api_key } = responseData.data;
       
       if (!subscription) {
         throw new Error("Payment confirmation failed - no subscription data");
@@ -270,7 +263,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // Refresh subscriptions after successful purchase
       await refreshSubscriptions();
       
-      return { subscription, apiKeyRaw: apiKey ?? null };
+      return { subscription, apiKeyRaw: api_key ?? null };
     },
     [refreshSubscriptions]
   );

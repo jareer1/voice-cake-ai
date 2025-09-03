@@ -20,7 +20,7 @@ export const humeVoices: VoiceOption[] = [
   { id: "Dungeon Master", name: "Dungeon Master", provider: "voicecake", category: "Character", description: "Dramatic fantasy narrator" },
   { id: "Female Meditation Guide", name: "Female Meditation Guide", provider: "voicecake", category: "Wellness", description: "Calming meditation voice" },
   { id: "Friendly Troll", name: "Friendly Troll", provider: "voicecake", category: "Character", description: "Playful fantasy character" },
-  { id: "Geraldine Wallace", name: "Geraldine Wallace", provider: "voicecake", category: "Character", description: "Elegant female voice" },
+  { id: "Geraldine Wallace", name: "Geraldine Wallace", provider: "voicecake", category: "Character", description: "Elegant male voice" },
   { id: "Ghost With Unfinished Business", name: "Ghost With Unfinished Business", provider: "voicecake", category: "Character", description: "Mysterious supernatural voice" },
   { id: "Imani Carter", name: "Imani Carter", provider: "voicecake", category: "Character", description: "Warm female voice" },
   { id: "Lady Elizabeth", name: "Lady Elizabeth", provider: "voicecake", category: "Character", description: "Refined British female" },
