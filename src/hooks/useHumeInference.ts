@@ -4,6 +4,7 @@ import config from "@/lib/config";
 import { agentAPI, liveKitAPI } from "@/pages/services/api";
 import { publicAgentAPI } from "@/pages/services/publicApi";
 import { Room, RoomEvent, Track, TranscriptionSegment } from 'livekit-client';
+import { getErrorMessage } from "@/utils/authUtils";
 
 export const INFERENCE_STATES = {
   IDLE: "idle",
@@ -1065,7 +1066,7 @@ const useHumeInference = ({
             sessionData = await liveKitAPI.createSession(currentAgentId, `User_${Date.now()}`);
           } catch (error: any) {
             console.error('Failed to start LiveKit session:', error);
-            throw new Error(error.response?.data?.detail || error.message || 'Failed to start LiveKit session for TEXT agent');
+            throw new Error(getErrorMessage(error));
           }
         } else {
           console.log('🌐 Using public LiveKit session for public inference');
@@ -1346,7 +1347,7 @@ const useHumeInference = ({
 
       cleanup();
 
-      toast.error("Failed to start inference connection");
+      toast.error(error.message || "Failed to start inference connection");
 
       setInferenceState("ERROR");
 
